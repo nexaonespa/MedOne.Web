@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Paciente> Pacientes => Set<Paciente>();
     public DbSet<Cita> Citas => Set<Cita>();
     public DbSet<Ficha> Fichas => Set<Ficha>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,5 +23,11 @@ public class AppDbContext : DbContext
             new Especialidad { Id = 2, Nombre = "Salud Mental" },
             new Especialidad { Id = 3, Nombre = "Kinesiología" }
         );
+
+        modelBuilder.Entity<Usuario>(e =>
+        {
+            e.HasIndex(u => u.Auth0Id).IsUnique(); // una cuenta de Auth0 = un solo usuario
+            e.Property(u => u.Rol).HasConversion<string>(); // guarda el rol como texto legible
+        });
     }
 }
