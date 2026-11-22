@@ -1,0 +1,208 @@
+﻿@page "/profesionales"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Profesionales</PageTitle>
+
+<h3>Profesionales</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Agregar profesional</h5>
+
+            <EditForm Model="nuevo" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre completo</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Nombre" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Email" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Especialidad</label>
+                        <InputSelect class="form-select" @bind-Value="nuevo.EspecialidadId">
+                            <option value="0">Selecciona una especialidad...</option>
+                            @foreach (var e in especialidades)
+                            {
+                                <option value="@e.Id">@e.Nombre</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Duración de cada cita (minutos)</label>
+                        <InputNumber class="form-control" @bind-Value="nuevo.DuracionCitaMinutos" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3" disabled="@guardando">
+                    @(guardando ? "Guardando..." : "Agregar profesional")
+                </button>
+            </EditForm>
+
+            @if (mensaje is not null)
+            {
+                <div class="alert alert-success mt-3">@mensaje</div>
+            }
+            @if (error is not null)
+            {
+                <div class="alert alert-danger mt-3">@error</div>
+            }
+        </div>
+    </div>
+
+    <h5>Listado (@profesionales.Count)</h5>
+
+    @if (profesionales.Count == 0)
+    {
+        <p class="text-muted">Todavía no hay profesionales registrados en tu clínica.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Especialidad</th>
+                    <th>Email</th>
+                    <th>Duración cita</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in profesionales)
+                {
+                    <tr>
+                        <td>@p.Nombre</td>
+                        <td>@p.Especialidad?.Nombre</td>
+                        <td>@p.Email</td>
+                        <td>@p.DuracionCitaMinutos min</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private List<Profesional> profesionales = new();
+    private List<Especialidad> especialidades = new();
+    private DatosProfesional nuevo = new();
+    private bool cargando = true;
+    private bool guardando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Solo el administrador de la clínica gestiona profesionales
+        if (!user.IsInRole(nameof(Rol.AdminClinica)))
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        especialidades = await Db.Especialidades
+            .AsNoTracking()
+            .OrderBy(e => e.Nombre)
+            .ToListAsync();
+
+        await CargarProfesionales();
+    }
+
+    private async Task CargarProfesionales()
+    {
+        // El filtro automático hace que solo vengan los de tu clínica
+        profesionales = await Db.Profesionales
+            .AsNoTracking()
+            .Include(p => p.Especialidad)
+            .OrderBy(p => p.Nombre)
+            .ToListAsync();
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var email = nuevo.Email.Trim().ToLowerInvariant();
+
+            // Evita duplicar un profesional dentro de la misma clínica
+            if (await Db.Profesionales.AnyAsync(p => p.Email == email))
+            {
+                error = "Ya existe un profesional con ese email en tu clínica.";
+                return;
+            }
+
+            var profesional = new Profesional
+            {
+                Nombre = nuevo.Nombre.Trim(),
+                Email = email,
+                EspecialidadId = nuevo.EspecialidadId,
+                DuracionCitaMinutos = nuevo.DuracionCitaMinutos
+            };
+
+            // La clínica se asigna sola al guardar
+            Db.Profesionales.Add(profesional);
+            await Db.SaveChangesAsync();
+
+            mensaje = $"Profesional {profesional.Nombre} agregado correctamente.";
+            nuevo = new();
+            await CargarProfesionales();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "Ocurrió un error al guardar. Intenta de nuevo.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private class DatosProfesional
+    {
+        [Required(ErrorMessage = "Ingresa el nombre del profesional")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ingresa el email del profesional")]
+        [EmailAddress(ErrorMessage = "El email no es válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Selecciona una especialidad")]
+        public int EspecialidadId { get; set; }
+
+        [Range(10, 240, ErrorMessage = "La duración debe estar entre 10 y 240 minutos")]
+        public int DuracionCitaMinutos { get; set; } = 30;
+    }
+}
