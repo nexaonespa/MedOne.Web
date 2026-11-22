@@ -12,6 +12,14 @@
 <h3>Bienvenido a MedOne</h3>
 <p>Antes de empezar, registra los datos de tu clínica.</p>
 
+@if (!string.IsNullOrEmpty(emailActual))
+{
+    <div class="alert alert-info">
+        Si te invitaron a una clínica existente, no crees una nueva:
+        pide al administrador que te invite con este email: <strong>@emailActual</strong>
+    </div>
+}
+
 <EditForm Model="modelo" OnValidSubmit="Guardar">
     <DataAnnotationsValidator />
     <ValidationSummary />
@@ -43,6 +51,7 @@
     private DatosClinica modelo = new();
     private bool guardando;
     private string? error;
+    private string? emailActual;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,7 +68,64 @@
         if (user.HasClaim(c => c.Type == "clinica_id"))
         {
             Nav.NavigateTo("/", forceLoad: true);
+            return;
         }
+
+        emailActual = ObtenerEmail(user);
+
+        // Si tiene una invitación pendiente, se une a esa clínica
+        await IntentarAceptarInvitacion(user);
+    }
+
+    private async Task IntentarAceptarInvitacion(ClaimsPrincipal user)
+    {
+        var auth0Id = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        var email = emailActual;
+
+        // Solo se aceptan invitaciones con email verificado por Auth0
+        var verificado = string.Equals(user.FindFirstValue("email_verified"), "true", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrEmpty(auth0Id) || string.IsNullOrEmpty(email) || !verificado)
+            return;
+
+        // Se busca en todas las clínicas (el usuario aún no pertenece a ninguna)
+        var invitacion = await Db.Invitaciones
+            .IgnoreQueryFilters()
+            .Where(i => i.Email == email && !i.Aceptada)
+            .OrderByDescending(i => i.FechaCreacion)
+            .FirstOrDefaultAsync();
+
+        if (invitacion is null)
+            return;
+
+        if (!await Db.Usuarios.AnyAsync(u => u.Auth0Id == auth0Id))
+        {
+            Db.Usuarios.Add(new Usuario
+            {
+                Auth0Id = auth0Id,
+                Email = email,
+                Nombre = user.Identity?.Name ?? email,
+                Rol = invitacion.Rol,
+                ClinicaId = invitacion.ClinicaId,
+                ProfesionalId = invitacion.ProfesionalId
+            });
+
+            invitacion.Aceptada = true;
+            invitacion.FechaAceptacion = DateTime.UtcNow;
+
+            try
+            {
+                await Db.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Ya se había aceptado en una carga anterior de la página
+                Db.ChangeTracker.Clear();
+            }
+        }
+
+        // Recarga completa para que se lean el rol y la clínica
+        Nav.NavigateTo("/", forceLoad: true);
     }
 
     private async Task Guardar()
@@ -94,7 +160,7 @@
             var usuario = new Usuario
             {
                 Auth0Id = auth0Id,
-                Email = user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue("email") ?? string.Empty,
+                Email = ObtenerEmail(user) ?? string.Empty,
                 Nombre = user.Identity?.Name ?? string.Empty,
                 Rol = Rol.Administrador,
                 Clinica = clinica
@@ -116,6 +182,9 @@
             guardando = false;
         }
     }
+
+    private static string? ObtenerEmail(ClaimsPrincipal user) =>
+        (user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue("email"))?.Trim().ToLowerInvariant();
 
     private class DatosClinica
     {

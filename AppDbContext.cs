@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<Cita> Citas => Set<Cita>();
     public DbSet<Ficha> Fichas => Set<Ficha>();
     public DbSet<Usuario> Usuarios => Set<Usuario>();
+    public DbSet<Invitacion> Invitaciones => Set<Invitacion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,11 +44,18 @@ public class AppDbContext : DbContext
             e.Property(u => u.Rol).HasConversion<string>(); // guarda el rol como texto legible
         });
 
+        modelBuilder.Entity<Invitacion>(e =>
+        {
+            e.HasIndex(i => i.Email); // búsqueda rápida al iniciar sesión
+            e.Property(i => i.Rol).HasConversion<string>();
+        });
+
         // Filtro automático: cada clínica ve solo sus propios datos
         modelBuilder.Entity<Profesional>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Paciente>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Cita>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Ficha>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
+        modelBuilder.Entity<Invitacion>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

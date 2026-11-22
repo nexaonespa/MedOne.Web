@@ -167,6 +167,46 @@ namespace MedOne.Web.Migrations
                     b.ToTable("Fichas");
                 });
 
+            modelBuilder.Entity("MedOne.Web.Models.Invitacion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Aceptada")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ClinicaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("FechaAceptacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ProfesionalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicaId");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("ProfesionalId");
+
+                    b.ToTable("Invitaciones");
+                });
+
             modelBuilder.Entity("MedOne.Web.Models.Paciente", b =>
                 {
                     b.Property<Guid>("Id")
@@ -342,6 +382,23 @@ namespace MedOne.Web.Migrations
                     b.Navigation("Especialidad");
 
                     b.Navigation("Paciente");
+                });
+
+            modelBuilder.Entity("MedOne.Web.Models.Invitacion", b =>
+                {
+                    b.HasOne("MedOne.Web.Models.Clinica", "Clinica")
+                        .WithMany()
+                        .HasForeignKey("ClinicaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MedOne.Web.Models.Profesional", "Profesional")
+                        .WithMany()
+                        .HasForeignKey("ProfesionalId");
+
+                    b.Navigation("Clinica");
+
+                    b.Navigation("Profesional");
                 });
 
             modelBuilder.Entity("MedOne.Web.Models.Paciente", b =>

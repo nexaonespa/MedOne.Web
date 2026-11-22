@@ -1,0 +1,302 @@
+﻿@page "/usuarios"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Usuarios</PageTitle>
+
+<h3>Usuarios</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Invitar usuario</h5>
+
+            <EditForm Model="nuevo" OnValidSubmit="Invitar">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Rol</label>
+                        <InputSelect class="form-select" @bind-Value="nuevo.Rol">
+                            <option value="">Selecciona un rol...</option>
+                            <option value="@nameof(Rol.Coordinador)">Coordinador</option>
+                            <option value="@nameof(Rol.Profesional)">Profesional</option>
+                            <option value="@nameof(Rol.Administrador)">Administrador</option>
+                        </InputSelect>
+                    </div>
+
+                    @if (nuevo.Rol == nameof(Rol.Profesional))
+                    {
+                        <div class="col-md-4">
+                            <label class="form-label">¿Qué profesional es?</label>
+                            <InputSelect class="form-select" @bind-Value="nuevo.ProfesionalId" @bind-Value:after="AlElegirProfesional">
+                                <option value="">Selecciona un profesional...</option>
+                                @foreach (var p in profesionales)
+                                {
+                                    <option value="@p.Id">@p.Nombre</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    }
+
+                    <div class="col-md-4">
+                        <label class="form-label">Email (el que usará para iniciar sesión)</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Email" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3" disabled="@guardando">
+                    @(guardando ? "Guardando..." : "Crear invitación")
+                </button>
+            </EditForm>
+
+            @if (mensaje is not null)
+            {
+                <div class="alert alert-success mt-3">@mensaje</div>
+            }
+            @if (error is not null)
+            {
+                <div class="alert alert-danger mt-3">@error</div>
+            }
+        </div>
+    </div>
+
+    <h5>Usuarios con acceso (@usuarios.Count)</h5>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Profesional asociado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in usuarios)
+            {
+                <tr>
+                    <td>@u.Nombre</td>
+                    <td>@u.Email</td>
+                    <td>@u.Rol</td>
+                    <td>@(u.Profesional?.Nombre ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h5 class="mt-4">Invitaciones pendientes (@pendientes.Count)</h5>
+    @if (pendientes.Count == 0)
+    {
+        <p class="text-muted">No hay invitaciones pendientes.</p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Profesional asociado</th>
+                    <th>Creada</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in pendientes)
+                {
+                    <tr>
+                        <td>@i.Email</td>
+                        <td>@i.Rol</td>
+                        <td>@(i.Profesional?.Nombre ?? "—")</td>
+                        <td>@i.FechaCreacion.ToLocalTime().ToString("dd-MM-yyyy")</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => Anular(i.Id)">Anular</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private List<Usuario> usuarios = new();
+    private List<Invitacion> pendientes = new();
+    private List<Profesional> profesionales = new();
+    private DatosInvitacion nuevo = new();
+    private bool cargando = true;
+    private bool guardando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Solo el Administrador gestiona usuarios
+        if (!user.IsInRole(nameof(Rol.Administrador)))
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        profesionales = await Db.Profesionales.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync();
+        await CargarDatos();
+        cargando = false;
+    }
+
+    private async Task CargarDatos()
+    {
+        var clinicaId = Db.ClinicaIdActual;
+        if (clinicaId is null) return;
+
+        // La tabla Usuarios no tiene filtro automático, así que filtramos a mano
+        usuarios = await Db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Profesional)
+            .Where(u => u.ClinicaId == clinicaId)
+            .OrderBy(u => u.Nombre)
+            .ToListAsync();
+
+        pendientes = await Db.Invitaciones
+            .AsNoTracking()
+            .Include(i => i.Profesional)
+            .Where(i => !i.Aceptada)
+            .OrderByDescending(i => i.FechaCreacion)
+            .ToListAsync();
+    }
+
+    // Al elegir el profesional, se completa su email automáticamente
+    private void AlElegirProfesional()
+    {
+        if (Guid.TryParse(nuevo.ProfesionalId, out var id))
+        {
+            var p = profesionales.FirstOrDefault(x => x.Id == id);
+            if (p is not null) nuevo.Email = p.Email;
+        }
+    }
+
+    private async Task Invitar()
+    {
+        guardando = true;
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var clinicaId = Db.ClinicaIdActual;
+            var email = nuevo.Email.Trim().ToLowerInvariant();
+            var rol = Enum.Parse<Rol>(nuevo.Rol);
+            Guid? profesionalId = null;
+
+            if (rol == Rol.Profesional)
+            {
+                if (!Guid.TryParse(nuevo.ProfesionalId, out var pid))
+                {
+                    error = "Selecciona a qué profesional corresponde este usuario.";
+                    return;
+                }
+                profesionalId = pid;
+
+                // Un profesional solo puede tener un usuario
+                var yaVinculado =
+                    await Db.Usuarios.AnyAsync(u => u.ProfesionalId == pid) ||
+                    await Db.Invitaciones.AnyAsync(i => i.ProfesionalId == pid && !i.Aceptada);
+
+                if (yaVinculado)
+                {
+                    error = "Ese profesional ya tiene un usuario o una invitación pendiente.";
+                    return;
+                }
+            }
+
+            if (await Db.Usuarios.AnyAsync(u => u.ClinicaId == clinicaId && u.Email == email))
+            {
+                error = "Esa persona ya tiene acceso a tu clínica.";
+                return;
+            }
+
+            if (await Db.Invitaciones.AnyAsync(i => i.Email == email && !i.Aceptada))
+            {
+                error = "Ya existe una invitación pendiente para ese email.";
+                return;
+            }
+
+            // La clínica se asigna sola al guardar
+            Db.Invitaciones.Add(new Invitacion
+            {
+                Email = email,
+                Rol = rol,
+                ProfesionalId = profesionalId
+            });
+            await Db.SaveChangesAsync();
+
+            mensaje = $"Invitación creada. Avísale a {email} que inicie sesión en MedOne con ese email.";
+            nuevo = new();
+            await CargarDatos();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "Ocurrió un error al crear la invitación. Intenta de nuevo.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task Anular(Guid invitacionId)
+    {
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var invitacion = await Db.Invitaciones.FirstOrDefaultAsync(i => i.Id == invitacionId && !i.Aceptada);
+            if (invitacion is null) return;
+
+            Db.Invitaciones.Remove(invitacion);
+            await Db.SaveChangesAsync();
+
+            mensaje = "Invitación anulada.";
+            await CargarDatos();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "No se pudo anular la invitación. Intenta de nuevo.";
+        }
+    }
+
+    private class DatosInvitacion
+    {
+        [Required(ErrorMessage = "Selecciona un rol")]
+        public string Rol { get; set; } = string.Empty;
+
+        public string? ProfesionalId { get; set; }
+
+        [Required(ErrorMessage = "Ingresa el email")]
+        [EmailAddress(ErrorMessage = "El email no es válido")]
+        public string Email { get; set; } = string.Empty;
+    }
+}
