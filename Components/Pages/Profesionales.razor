@@ -120,7 +120,7 @@ else
         }
 
         // Solo el administrador de la clínica gestiona profesionales
-        if (!user.IsInRole(nameof(Rol.AdminClinica)))
+        if (!user.IsInRole(nameof(Rol.Administrador)))
         {
             Nav.NavigateTo("/", forceLoad: true);
             return;

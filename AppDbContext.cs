@@ -27,11 +27,14 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Datos iniciales: las tres especialidades del MVP
+        // Especialidades disponibles (los Id 1 a 3 se mantienen para no afectar datos existentes)
         modelBuilder.Entity<Especialidad>().HasData(
-            new Especialidad { Id = 1, Nombre = "Medicina General" },
-            new Especialidad { Id = 2, Nombre = "Salud Mental" },
-            new Especialidad { Id = 3, Nombre = "Kinesiología" }
+            new Especialidad { Id = 1, Nombre = "Médico" },
+            new Especialidad { Id = 2, Nombre = "Psicólogo" },
+            new Especialidad { Id = 3, Nombre = "Kinesiólogo" },
+            new Especialidad { Id = 4, Nombre = "Fonoaudiólogo" },
+            new Especialidad { Id = 5, Nombre = "Terapeuta Ocupacional" },
+            new Especialidad { Id = 6, Nombre = "Neuropsicólogo" }
         );
 
         modelBuilder.Entity<Usuario>(e =>

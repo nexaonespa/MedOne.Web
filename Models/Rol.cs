@@ -2,8 +2,8 @@
 
 public enum Rol
 {
-    AdminClinica,
+    Administrador,
+    Coordinador,
     Profesional,
-    Recepcion,
     Paciente
 }

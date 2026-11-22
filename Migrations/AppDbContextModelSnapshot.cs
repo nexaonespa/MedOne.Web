@@ -100,17 +100,32 @@ namespace MedOne.Web.Migrations
                         new
                         {
                             Id = 1,
-                            Nombre = "Medicina General"
+                            Nombre = "Médico"
                         },
                         new
                         {
                             Id = 2,
-                            Nombre = "Salud Mental"
+                            Nombre = "Psicólogo"
                         },
                         new
                         {
                             Id = 3,
-                            Nombre = "Kinesiología"
+                            Nombre = "Kinesiólogo"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Nombre = "Fonoaudiólogo"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Nombre = "Terapeuta Ocupacional"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Nombre = "Neuropsicólogo"
                         });
                 });
 

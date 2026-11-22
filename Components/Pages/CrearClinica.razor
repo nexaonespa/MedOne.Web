@@ -96,7 +96,7 @@
                 Auth0Id = auth0Id,
                 Email = user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue("email") ?? string.Empty,
                 Nombre = user.Identity?.Name ?? string.Empty,
-                Rol = Rol.AdminClinica,
+                Rol = Rol.Administrador,
                 Clinica = clinica
             };
 

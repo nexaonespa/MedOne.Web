@@ -14,7 +14,7 @@
             </NavLink>
         </div>
 
-        <AuthorizeView Roles="AdminClinica,Recepcion,Profesional">
+        <AuthorizeView Roles="Administrador,Coordinador,Profesional">
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="agenda">
@@ -29,7 +29,7 @@
             </Authorized>
         </AuthorizeView>
 
-        <AuthorizeView Roles="AdminClinica">
+        <AuthorizeView Roles="Administrador">
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="profesionales">
