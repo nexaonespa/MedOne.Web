@@ -1,6 +1,6 @@
 ﻿namespace MedOne.Web.Models;
 
-public class Profesional
+public class Profesional : IPerteneceAClinica
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ClinicaId { get; set; }

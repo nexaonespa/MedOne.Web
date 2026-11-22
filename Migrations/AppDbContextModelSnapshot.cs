@@ -123,6 +123,9 @@ namespace MedOne.Web.Migrations
                     b.Property<Guid>("CitaId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ClinicaId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("DatosJson")
                         .IsRequired()
                         .HasColumnType("text");
@@ -139,6 +142,8 @@ namespace MedOne.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CitaId");
+
+                    b.HasIndex("ClinicaId");
 
                     b.HasIndex("EspecialidadId");
 
@@ -297,6 +302,12 @@ namespace MedOne.Web.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MedOne.Web.Models.Clinica", "Clinica")
+                        .WithMany()
+                        .HasForeignKey("ClinicaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MedOne.Web.Models.Especialidad", "Especialidad")
                         .WithMany()
                         .HasForeignKey("EspecialidadId")
@@ -310,6 +321,8 @@ namespace MedOne.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("Cita");
+
+                    b.Navigation("Clinica");
 
                     b.Navigation("Especialidad");
 

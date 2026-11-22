@@ -1,6 +1,6 @@
 ﻿namespace MedOne.Web.Models;
 
-public class Cita
+public class Cita : IPerteneceAClinica
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ClinicaId { get; set; }

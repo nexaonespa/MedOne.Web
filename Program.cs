@@ -27,6 +27,9 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
 // Agrega rol y clínica (desde nuestra tabla Usuarios) al usuario de Auth0
 builder.Services.AddScoped<IClaimsTransformation, UsuarioClaimsTransformation>();
 
+// Sabe a qué clínica pertenece el usuario conectado (usado por el filtro de datos)
+builder.Services.AddScoped<ClinicaActual>();
+
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 

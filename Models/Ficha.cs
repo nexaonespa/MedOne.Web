@@ -1,8 +1,11 @@
 ﻿namespace MedOne.Web.Models;
 
-public class Ficha
+public class Ficha : IPerteneceAClinica
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ClinicaId { get; set; }
+    public Clinica? Clinica { get; set; }
+
     public Guid CitaId { get; set; }
     public Cita? Cita { get; set; }
 
