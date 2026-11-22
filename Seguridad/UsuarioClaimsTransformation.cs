@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MedOne.Web.Seguridad;
 
-// Se ejecuta en cada visita: agrega el rol y la clínica del usuario
+// Se ejecuta en cada visita: agrega el rol, la clínica y el profesional del usuario
 // (tomados de nuestra tabla Usuarios) a la identidad que entrega Auth0.
 public class UsuarioClaimsTransformation : IClaimsTransformation
 {
@@ -32,7 +32,7 @@ public class UsuarioClaimsTransformation : IClaimsTransformation
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
 
-        // Si no existe en nuestra base, todavía no ha creado su clínica
+        // Si no existe en nuestra base, todavía no ha creado ni se ha unido a una clínica
         if (usuario is null)
             return principal;
 
@@ -40,6 +40,10 @@ public class UsuarioClaimsTransformation : IClaimsTransformation
         datosMedOne.AddClaim(new Claim(ClaimTypes.Role, usuario.Rol.ToString()));
         datosMedOne.AddClaim(new Claim("clinica_id", usuario.ClinicaId.ToString()));
         datosMedOne.AddClaim(new Claim("usuario_id", usuario.Id.ToString()));
+
+        // Si el usuario es un profesional, guardamos a cuál corresponde
+        if (usuario.ProfesionalId is Guid profesionalId)
+            datosMedOne.AddClaim(new Claim("profesional_id", profesionalId.ToString()));
 
         var copia = principal.Clone();
         copia.AddIdentity(datosMedOne);

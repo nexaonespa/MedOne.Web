@@ -7,20 +7,28 @@
 @inject AppDbContext Db
 @inject NavigationManager Nav
 
-<PageTitle>Agenda</PageTitle>
+<PageTitle>@(esProfesional ? "Mi agenda" : "Agenda")</PageTitle>
 
-<h3>Agenda</h3>
+<h3>@(esProfesional ? "Mi agenda" : "Agenda")</h3>
 
 @if (cargando)
 {
     <p>Cargando...</p>
+}
+else if (errorAcceso is not null)
+{
+    <div class="alert alert-warning">@errorAcceso</div>
 }
 else if (profesionales.Count == 0 || pacientes.Count == 0)
 {
     <div class="alert alert-warning">
         Para agendar citas necesitas al menos un profesional y un paciente registrados.
         <br />
-        <a href="profesionales">Ir a Profesionales</a> · <a href="pacientes">Ir a Pacientes</a>
+        <a href="pacientes">Ir a Pacientes</a>
+        @if (!esProfesional)
+        {
+            <span> · <a href="profesionales">Ir a Profesionales</a></span>
+        }
     </div>
 }
 else
@@ -36,13 +44,20 @@ else
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Profesional</label>
-                        <InputSelect class="form-select" @bind-Value="nuevo.ProfesionalId">
-                            <option value="">Selecciona un profesional...</option>
-                            @foreach (var p in profesionales)
-                            {
-                                <option value="@p.Id">@p.Nombre (@p.DuracionCitaMinutos min)</option>
-                            }
-                        </InputSelect>
+                        @if (esProfesional)
+                        {
+                            <input class="form-control" value="@profesionales[0].Nombre" disabled />
+                        }
+                        else
+                        {
+                            <InputSelect class="form-select" @bind-Value="nuevo.ProfesionalId">
+                                <option value="">Selecciona un profesional...</option>
+                                @foreach (var p in profesionales)
+                                {
+                                    <option value="@p.Id">@p.Nombre (@p.DuracionCitaMinutos min)</option>
+                                }
+                            </InputSelect>
+                        }
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Paciente</label>
@@ -100,7 +115,10 @@ else
             <thead>
                 <tr>
                     <th>Horario</th>
-                    <th>Profesional</th>
+                    @if (!esProfesional)
+                    {
+                        <th>Profesional</th>
+                    }
                     <th>Paciente</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -113,21 +131,30 @@ else
                     var finLocal = inicioLocal.AddMinutes(c.DuracionMinutos);
                     <tr>
                         <td>@inicioLocal.ToString("HH:mm") – @finLocal.ToString("HH:mm")</td>
-                        <td>@c.Profesional?.Nombre</td>
+                        @if (!esProfesional)
+                        {
+                            <td>@c.Profesional?.Nombre</td>
+                        }
                         <td>@c.Paciente?.Nombre</td>
                         <td><span class="badge @ClaseEstado(c.Estado)">@c.Estado</span></td>
                         <td>
                             @if (c.Estado == "Agendada")
                             {
                                 <button class="btn btn-sm btn-outline-primary me-1"
-                                        @onclick='() => CambiarEstado(c.Id, "Confirmada")'>Confirmar</button>
+                                        @onclick='() => CambiarEstado(c.Id, "Confirmada")'>
+                                    Confirmar
+                                </button>
                             }
                             @if (c.Estado is "Agendada" or "Confirmada")
                             {
                                 <button class="btn btn-sm btn-outline-success me-1"
-                                        @onclick='() => CambiarEstado(c.Id, "Completada")'>Completar</button>
+                                        @onclick='() => CambiarEstado(c.Id, "Completada")'>
+                                    Completar
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger"
-                                        @onclick='() => CambiarEstado(c.Id, "Cancelada")'>Cancelar</button>
+                                        @onclick='() => CambiarEstado(c.Id, "Cancelada")'>
+                                    Cancelar
+                                </button>
                             }
                         </td>
                     </tr>
@@ -150,6 +177,11 @@ else
     private bool guardando;
     private string? mensaje;
     private string? error;
+    private string? errorAcceso;
+
+    // Si el usuario es Profesional, solo trabaja con sus propias citas
+    private bool esProfesional;
+    private Guid? profesionalPropioId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,12 +200,39 @@ else
             return;
         }
 
-        profesionales = await Db.Profesionales.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync();
+        esProfesional = user.IsInRole(nameof(Rol.Profesional));
+
+        if (esProfesional)
+        {
+            if (Guid.TryParse(user.FindFirst("profesional_id")?.Value, out var id))
+            {
+                profesionalPropioId = id;
+            }
+            else
+            {
+                errorAcceso = "Tu usuario no está vinculado a un profesional. Pide al administrador que revise tu invitación.";
+                cargando = false;
+                return;
+            }
+        }
+
+        var consultaProfesionales = Db.Profesionales.AsNoTracking();
+        if (esProfesional)
+            consultaProfesionales = consultaProfesionales.Where(p => p.Id == profesionalPropioId);
+
+        profesionales = await consultaProfesionales.OrderBy(p => p.Nombre).ToListAsync();
         pacientes = await Db.Pacientes.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync();
 
+        nuevo = NuevoFormulario();
         await CargarCitas();
         cargando = false;
     }
+
+    // Formulario vacío; para un Profesional ya viene con su nombre
+    private DatosCita NuevoFormulario() => new()
+    {
+        ProfesionalId = esProfesional ? profesionalPropioId.ToString()! : string.Empty
+    };
 
     private async Task CargarCitas()
     {
@@ -181,13 +240,16 @@ else
         var desde = HoraChile.AUtc(diaSeleccionado.Date);
         var hasta = HoraChile.AUtc(diaSeleccionado.Date.AddDays(1));
 
-        citas = await Db.Citas
+        var consulta = Db.Citas
             .AsNoTracking()
             .Include(c => c.Profesional)
             .Include(c => c.Paciente)
-            .Where(c => c.FechaHoraInicio >= desde && c.FechaHoraInicio < hasta)
-            .OrderBy(c => c.FechaHoraInicio)
-            .ToListAsync();
+            .Where(c => c.FechaHoraInicio >= desde && c.FechaHoraInicio < hasta);
+
+        if (esProfesional)
+            consulta = consulta.Where(c => c.ProfesionalId == profesionalPropioId);
+
+        citas = await consulta.OrderBy(c => c.FechaHoraInicio).ToListAsync();
     }
 
     private async Task CambiarDia(int dias)
@@ -210,7 +272,8 @@ else
 
         try
         {
-            var profesionalId = Guid.Parse(nuevo.ProfesionalId);
+            // Un Profesional siempre agenda a su nombre, sin importar lo que llegue del formulario
+            var profesionalId = esProfesional ? profesionalPropioId!.Value : Guid.Parse(nuevo.ProfesionalId);
             var pacienteId = Guid.Parse(nuevo.PacienteId);
             var profesional = profesionales.First(p => p.Id == profesionalId);
 
@@ -263,7 +326,7 @@ else
             await Db.SaveChangesAsync();
 
             mensaje = $"Cita agendada para el {inicioLocal:dd-MM-yyyy} a las {inicioLocal:HH:mm}.";
-            nuevo = new();
+            nuevo = NuevoFormulario();
 
             // Muestra el día de la cita recién agendada
             diaSeleccionado = inicioLocal.Date;
@@ -287,7 +350,13 @@ else
 
         try
         {
-            var cita = await Db.Citas.FirstOrDefaultAsync(c => c.Id == citaId);
+            var consulta = Db.Citas.Where(c => c.Id == citaId);
+
+            // Un Profesional solo puede cambiar sus propias citas
+            if (esProfesional)
+                consulta = consulta.Where(c => c.ProfesionalId == profesionalPropioId);
+
+            var cita = await consulta.FirstOrDefaultAsync();
             if (cita is null) return;
 
             cita.Estado = nuevoEstado;
