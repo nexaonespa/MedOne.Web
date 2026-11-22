@@ -1,0 +1,327 @@
+﻿@page "/agenda"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@using MedOne.Web.Utilidades
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Agenda</PageTitle>
+
+<h3>Agenda</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else if (profesionales.Count == 0 || pacientes.Count == 0)
+{
+    <div class="alert alert-warning">
+        Para agendar citas necesitas al menos un profesional y un paciente registrados.
+        <br />
+        <a href="profesionales">Ir a Profesionales</a> · <a href="pacientes">Ir a Pacientes</a>
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Agendar cita</h5>
+
+            <EditForm Model="nuevo" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Profesional</label>
+                        <InputSelect class="form-select" @bind-Value="nuevo.ProfesionalId">
+                            <option value="">Selecciona un profesional...</option>
+                            @foreach (var p in profesionales)
+                            {
+                                <option value="@p.Id">@p.Nombre (@p.DuracionCitaMinutos min)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Paciente</label>
+                        <InputSelect class="form-select" @bind-Value="nuevo.PacienteId">
+                            <option value="">Selecciona un paciente...</option>
+                            @foreach (var p in pacientes)
+                            {
+                                <option value="@p.Id">@p.Nombre (@p.Rut)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha</label>
+                        <InputDate class="form-control" @bind-Value="nuevo.Fecha" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hora</label>
+                        <InputDate Type="InputDateType.Time" class="form-control" @bind-Value="nuevo.Hora" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3" disabled="@guardando">
+                    @(guardando ? "Guardando..." : "Agendar cita")
+                </button>
+            </EditForm>
+
+            @if (mensaje is not null)
+            {
+                <div class="alert alert-success mt-3">@mensaje</div>
+            }
+            @if (error is not null)
+            {
+                <div class="alert alert-danger mt-3">@error</div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <button class="btn btn-outline-secondary" @onclick="() => CambiarDia(-1)">← Anterior</button>
+        <button class="btn btn-outline-secondary" @onclick="IrAHoy">Hoy</button>
+        <button class="btn btn-outline-secondary" @onclick="() => CambiarDia(1)">Siguiente →</button>
+        <input type="date" class="form-control" style="max-width: 200px"
+               @bind="diaSeleccionado" @bind:after="CargarCitas" />
+    </div>
+
+    <h5>Citas del @diaSeleccionado.ToString("dd-MM-yyyy") (@citas.Count)</h5>
+
+    @if (citas.Count == 0)
+    {
+        <p class="text-muted">No hay citas para este día.</p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Horario</th>
+                    <th>Profesional</th>
+                    <th>Paciente</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in citas)
+                {
+                    var inicioLocal = HoraChile.ALocal(c.FechaHoraInicio);
+                    var finLocal = inicioLocal.AddMinutes(c.DuracionMinutos);
+                    <tr>
+                        <td>@inicioLocal.ToString("HH:mm") – @finLocal.ToString("HH:mm")</td>
+                        <td>@c.Profesional?.Nombre</td>
+                        <td>@c.Paciente?.Nombre</td>
+                        <td><span class="badge @ClaseEstado(c.Estado)">@c.Estado</span></td>
+                        <td>
+                            @if (c.Estado == "Agendada")
+                            {
+                                <button class="btn btn-sm btn-outline-primary me-1"
+                                        @onclick='() => CambiarEstado(c.Id, "Confirmada")'>Confirmar</button>
+                            }
+                            @if (c.Estado is "Agendada" or "Confirmada")
+                            {
+                                <button class="btn btn-sm btn-outline-success me-1"
+                                        @onclick='() => CambiarEstado(c.Id, "Completada")'>Completar</button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick='() => CambiarEstado(c.Id, "Cancelada")'>Cancelar</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private List<Profesional> profesionales = new();
+    private List<Paciente> pacientes = new();
+    private List<Cita> citas = new();
+    private DatosCita nuevo = new();
+    private DateTime diaSeleccionado = HoraChile.Ahora.Date;
+    private bool cargando = true;
+    private bool guardando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Los pacientes no ven la agenda de la clínica
+        if (user.IsInRole(nameof(Rol.Paciente)))
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        profesionales = await Db.Profesionales.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync();
+        pacientes = await Db.Pacientes.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync();
+
+        await CargarCitas();
+        cargando = false;
+    }
+
+    private async Task CargarCitas()
+    {
+        // Rango del día elegido (hora Chile), convertido a UTC para consultar
+        var desde = HoraChile.AUtc(diaSeleccionado.Date);
+        var hasta = HoraChile.AUtc(diaSeleccionado.Date.AddDays(1));
+
+        citas = await Db.Citas
+            .AsNoTracking()
+            .Include(c => c.Profesional)
+            .Include(c => c.Paciente)
+            .Where(c => c.FechaHoraInicio >= desde && c.FechaHoraInicio < hasta)
+            .OrderBy(c => c.FechaHoraInicio)
+            .ToListAsync();
+    }
+
+    private async Task CambiarDia(int dias)
+    {
+        diaSeleccionado = diaSeleccionado.AddDays(dias);
+        await CargarCitas();
+    }
+
+    private async Task IrAHoy()
+    {
+        diaSeleccionado = HoraChile.Ahora.Date;
+        await CargarCitas();
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var profesionalId = Guid.Parse(nuevo.ProfesionalId);
+            var pacienteId = Guid.Parse(nuevo.PacienteId);
+            var profesional = profesionales.First(p => p.Id == profesionalId);
+
+            var inicioLocal = nuevo.Fecha!.Value.Date + nuevo.Hora!.Value.ToTimeSpan();
+
+            if (inicioLocal < HoraChile.Ahora)
+            {
+                error = "No puedes agendar una cita en el pasado.";
+                return;
+            }
+
+            var inicio = HoraChile.AUtc(inicioLocal);
+            var duracion = profesional.DuracionCitaMinutos;
+            var fin = inicio.AddMinutes(duracion);
+            var desdeBusqueda = inicio.AddHours(-24);
+
+            // Citas activas cercanas del mismo profesional o del mismo paciente
+            var cercanas = await Db.Citas
+                .AsNoTracking()
+                .Where(c => c.Estado != "Cancelada"
+                    && (c.ProfesionalId == profesionalId || c.PacienteId == pacienteId)
+                    && c.FechaHoraInicio < fin
+                    && c.FechaHoraInicio > desdeBusqueda)
+                .ToListAsync();
+
+            // ¿Alguna se cruza con el horario nuevo?
+            var choque = cercanas.FirstOrDefault(c =>
+                c.FechaHoraInicio < fin &&
+                c.FechaHoraInicio.AddMinutes(c.DuracionMinutos) > inicio);
+
+            if (choque is not null)
+            {
+                error = choque.ProfesionalId == profesionalId
+                    ? "El profesional ya tiene una cita que se cruza con ese horario."
+                    : "El paciente ya tiene una cita que se cruza con ese horario.";
+                return;
+            }
+
+            var cita = new Cita
+            {
+                ProfesionalId = profesionalId,
+                PacienteId = pacienteId,
+                FechaHoraInicio = inicio,
+                DuracionMinutos = duracion,
+                Estado = "Agendada"
+            };
+
+            // La clínica se asigna sola al guardar
+            Db.Citas.Add(cita);
+            await Db.SaveChangesAsync();
+
+            mensaje = $"Cita agendada para el {inicioLocal:dd-MM-yyyy} a las {inicioLocal:HH:mm}.";
+            nuevo = new();
+
+            // Muestra el día de la cita recién agendada
+            diaSeleccionado = inicioLocal.Date;
+            await CargarCitas();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "Ocurrió un error al agendar. Revisa la fecha y hora e intenta de nuevo.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task CambiarEstado(Guid citaId, string nuevoEstado)
+    {
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var cita = await Db.Citas.FirstOrDefaultAsync(c => c.Id == citaId);
+            if (cita is null) return;
+
+            cita.Estado = nuevoEstado;
+            await Db.SaveChangesAsync();
+            await CargarCitas();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "No se pudo cambiar el estado de la cita. Intenta de nuevo.";
+        }
+    }
+
+    private static string ClaseEstado(string estado) => estado switch
+    {
+        "Agendada" => "bg-secondary",
+        "Confirmada" => "bg-primary",
+        "Completada" => "bg-success",
+        "Cancelada" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private class DatosCita
+    {
+        [Required(ErrorMessage = "Selecciona un profesional")]
+        public string ProfesionalId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Selecciona un paciente")]
+        public string PacienteId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Selecciona la fecha")]
+        public DateTime? Fecha { get; set; }
+
+        [Required(ErrorMessage = "Selecciona la hora")]
+        public TimeOnly? Hora { get; set; }
+    }
+}
