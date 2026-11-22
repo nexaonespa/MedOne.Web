@@ -280,6 +280,9 @@ namespace MedOne.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AccesoClinicoTotal")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Auth0Id")
                         .IsRequired()
                         .HasColumnType("text");

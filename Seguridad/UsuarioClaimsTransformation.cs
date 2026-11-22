@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MedOne.Web.Seguridad;
 
-// Se ejecuta en cada visita: agrega el rol, la clínica y el profesional del usuario
-// (tomados de nuestra tabla Usuarios) a la identidad que entrega Auth0.
+// Se ejecuta en cada visita: agrega el rol, la clínica, el profesional y los permisos
+// del usuario (tomados de nuestra tabla Usuarios) a la identidad que entrega Auth0.
 public class UsuarioClaimsTransformation : IClaimsTransformation
 {
     private readonly AppDbContext _db;
@@ -41,9 +41,13 @@ public class UsuarioClaimsTransformation : IClaimsTransformation
         datosMedOne.AddClaim(new Claim("clinica_id", usuario.ClinicaId.ToString()));
         datosMedOne.AddClaim(new Claim("usuario_id", usuario.Id.ToString()));
 
-        // Si el usuario es un profesional, guardamos a cuál corresponde
+        // Si el usuario atiende pacientes, guardamos a qué profesional corresponde
         if (usuario.ProfesionalId is Guid profesionalId)
             datosMedOne.AddClaim(new Claim("profesional_id", profesionalId.ToString()));
+
+        // Permiso para leer todas las fichas de la clínica
+        if (usuario.AccesoClinicoTotal && usuario.ProfesionalId is not null)
+            datosMedOne.AddClaim(new Claim("acceso_clinico_total", "true"));
 
         var copia = principal.Clone();
         copia.AddIdentity(datosMedOne);
