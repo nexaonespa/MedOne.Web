@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using System.Security.Claims
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +10,13 @@
         <div class="top-row px-4">
             <AuthorizeView>
                 <Authorized>
-                    <span>Hola, @context.User.Identity?.Name</span>
+                    <span>
+                        Hola, @context.User.Identity?.Name
+                        @if (context.User.FindFirst(ClaimTypes.Role)?.Value is string rol)
+                        {
+                            <small class="text-muted">(@rol)</small>
+                        }
+                    </span>
                     <a href="/Account/Logout">Cerrar sesión</a>
                 </Authorized>
                 <NotAuthorized>

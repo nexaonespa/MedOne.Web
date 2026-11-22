@@ -1,0 +1,128 @@
+﻿@page "/crear-clinica"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Crear clínica</PageTitle>
+
+<h3>Bienvenido a MedOne</h3>
+<p>Antes de empezar, registra los datos de tu clínica.</p>
+
+<EditForm Model="modelo" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Nombre de la clínica</label>
+        <InputText class="form-control" @bind-Value="modelo.Nombre" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">RUT de la clínica</label>
+        <InputText class="form-control" @bind-Value="modelo.Rut" placeholder="76.123.456-7" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@guardando">
+        @(guardando ? "Guardando..." : "Crear clínica")
+    </button>
+</EditForm>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private DatosClinica modelo = new();
+    private bool guardando;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        // Si no ha iniciado sesión, lo mandamos al login
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Si ya tiene clínica, no debe crear otra
+        if (user.HasClaim(c => c.Type == "clinica_id"))
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        error = null;
+
+        try
+        {
+            var user = (await AuthState).User;
+            var auth0Id = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(auth0Id))
+            {
+                error = "No se pudo identificar tu cuenta. Cierra sesión e intenta de nuevo.";
+                return;
+            }
+
+            // Por seguridad: si ya existe, no se crea de nuevo
+            if (await Db.Usuarios.AnyAsync(u => u.Auth0Id == auth0Id))
+            {
+                Nav.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
+            var clinica = new Clinica
+            {
+                Nombre = modelo.Nombre.Trim(),
+                Rut = modelo.Rut.Trim()
+            };
+
+            var usuario = new Usuario
+            {
+                Auth0Id = auth0Id,
+                Email = user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue("email") ?? string.Empty,
+                Nombre = user.Identity?.Name ?? string.Empty,
+                Rol = Rol.AdminClinica,
+                Clinica = clinica
+            };
+
+            // Guarda la clínica y el usuario juntos, en una sola operación
+            Db.Usuarios.Add(usuario);
+            await Db.SaveChangesAsync();
+
+            // Recarga completa para que se lean el rol y la clínica nuevos
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception)
+        {
+            error = "Ocurrió un error al guardar. Intenta de nuevo.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private class DatosClinica
+    {
+        [Required(ErrorMessage = "Ingresa el nombre de la clínica")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ingresa el RUT de la clínica")]
+        public string Rut { get; set; } = string.Empty;
+    }
+}

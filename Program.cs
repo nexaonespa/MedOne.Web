@@ -1,6 +1,8 @@
 using Auth0.AspNetCore.Authentication;
 using MedOne.Web;
 using MedOne.Web.Components;
+using MedOne.Web.Seguridad;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +21,11 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
     options.Domain = builder.Configuration["Auth0:Domain"];
     options.ClientId = builder.Configuration["Auth0:ClientId"];
     options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
+    options.Scope = "openid profile email"; // pedimos también el email
 });
+
+// Agrega rol y clínica (desde nuestra tabla Usuarios) al usuario de Auth0
+builder.Services.AddScoped<IClaimsTransformation, UsuarioClaimsTransformation>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
@@ -37,6 +43,34 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Si inició sesión pero aún no tiene clínica, lo enviamos a crearla
+app.Use(async (context, next) =>
+{
+    var ruta = context.Request.Path;
+
+    var esRutaLibre =
+        ruta.StartsWithSegments("/crear-clinica") ||
+        ruta.StartsWithSegments("/Account") ||
+        ruta.StartsWithSegments("/callback") ||
+        ruta.StartsWithSegments("/Error") ||
+        ruta.StartsWithSegments("/_blazor") ||
+        ruta.StartsWithSegments("/_framework") ||
+        ruta.StartsWithSegments("/_content") ||
+        Path.HasExtension(ruta.Value); // archivos como .css, .js, imágenes
+
+    var user = context.User;
+
+    if (user.Identity?.IsAuthenticated == true
+        && !user.HasClaim(c => c.Type == "clinica_id")
+        && !esRutaLibre)
+    {
+        context.Response.Redirect("/crear-clinica");
+        return;
+    }
+
+    await next();
+});
 
 app.UseAntiforgery();
 
