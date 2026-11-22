@@ -1,0 +1,213 @@
+﻿@page "/pacientes"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Pacientes</PageTitle>
+
+<h3>Pacientes</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Agregar paciente</h5>
+
+            <EditForm Model="nuevo" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre completo</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Nombre" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">RUT</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Rut" placeholder="12.345.678-9" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha de nacimiento</label>
+                        <InputDate class="form-control" @bind-Value="nuevo.FechaNacimiento" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email (opcional)</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Email" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Teléfono (opcional)</label>
+                        <InputText class="form-control" @bind-Value="nuevo.Telefono" placeholder="+56 9 1234 5678" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3" disabled="@guardando">
+                    @(guardando ? "Guardando..." : "Agregar paciente")
+                </button>
+            </EditForm>
+
+            @if (mensaje is not null)
+            {
+                <div class="alert alert-success mt-3">@mensaje</div>
+            }
+            @if (error is not null)
+            {
+                <div class="alert alert-danger mt-3">@error</div>
+            }
+        </div>
+    </div>
+
+    <h5>Listado (@pacientes.Count)</h5>
+
+    @if (pacientes.Count == 0)
+    {
+        <p class="text-muted">Todavía no hay pacientes registrados en tu clínica.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>RUT</th>
+                    <th>Edad</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in pacientes)
+                {
+                    <tr>
+                        <td>@p.Nombre</td>
+                        <td>@p.Rut</td>
+                        <td>@Edad(p.FechaNacimiento) años</td>
+                        <td>@p.Email</td>
+                        <td>@p.Telefono</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private List<Paciente> pacientes = new();
+    private DatosPaciente nuevo = new();
+    private bool cargando = true;
+    private bool guardando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        // Solo usuarios con sesión iniciada
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Los pacientes no pueden ver el listado de otros pacientes
+        if (user.IsInRole(nameof(Rol.Paciente)))
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        await CargarPacientes();
+    }
+
+    private async Task CargarPacientes()
+    {
+        // El filtro automático hace que solo vengan los pacientes de tu clínica
+        pacientes = await Db.Pacientes
+            .AsNoTracking()
+            .OrderBy(p => p.Nombre)
+            .ToListAsync();
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var rut = nuevo.Rut.Trim();
+
+            // Evita duplicar un paciente dentro de la misma clínica
+            if (await Db.Pacientes.AnyAsync(p => p.Rut == rut))
+            {
+                error = "Ya existe un paciente con ese RUT en tu clínica.";
+                return;
+            }
+
+            var paciente = new Paciente
+            {
+                Nombre = nuevo.Nombre.Trim(),
+                Rut = rut,
+                Email = nuevo.Email?.Trim() ?? string.Empty,
+                Telefono = nuevo.Telefono?.Trim() ?? string.Empty,
+                // PostgreSQL exige fechas en UTC
+                FechaNacimiento = DateTime.SpecifyKind(nuevo.FechaNacimiento!.Value.Date, DateTimeKind.Utc)
+            };
+
+            // La clínica se asigna sola al guardar
+            Db.Pacientes.Add(paciente);
+            await Db.SaveChangesAsync();
+
+            mensaje = $"Paciente {paciente.Nombre} agregado correctamente.";
+            nuevo = new();
+            await CargarPacientes();
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            error = "Ocurrió un error al guardar. Intenta de nuevo.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private static int Edad(DateTime nacimiento)
+    {
+        var hoy = DateTime.Today;
+        var edad = hoy.Year - nacimiento.Year;
+        if (nacimiento.Date > hoy.AddYears(-edad)) edad--;
+        return edad;
+    }
+
+    private class DatosPaciente
+    {
+        [Required(ErrorMessage = "Ingresa el nombre del paciente")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ingresa el RUT del paciente")]
+        public string Rut { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ingresa la fecha de nacimiento")]
+        public DateTime? FechaNacimiento { get; set; }
+
+        [EmailAddress(ErrorMessage = "El email no es válido")]
+        public string? Email { get; set; }
+
+        public string? Telefono { get; set; }
+    }
+}
