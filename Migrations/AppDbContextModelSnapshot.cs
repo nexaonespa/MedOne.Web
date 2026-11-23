@@ -129,6 +129,48 @@ namespace MedOne.Web.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MedOne.Web.Models.EventoAuditoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Detalle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FichaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PacienteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UsuarioNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PacienteId");
+
+                    b.HasIndex("ClinicaId", "Fecha");
+
+                    b.ToTable("EventosAuditoria");
+                });
+
             modelBuilder.Entity("MedOne.Web.Models.Ficha", b =>
                 {
                     b.Property<Guid>("Id")
@@ -151,12 +193,19 @@ namespace MedOne.Web.Migrations
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("PacienteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProfesionalId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CitaId");
+                    b.HasIndex("CitaId")
+                        .IsUnique();
 
                     b.HasIndex("ClinicaId");
 
@@ -164,7 +213,42 @@ namespace MedOne.Web.Migrations
 
                     b.HasIndex("PacienteId");
 
+                    b.HasIndex("ProfesionalId");
+
                     b.ToTable("Fichas");
+                });
+
+            modelBuilder.Entity("MedOne.Web.Models.FichaVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DatosJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("FechaReemplazo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FichaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UsuarioNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FichaId");
+
+                    b.ToTable("FichaVersiones");
                 });
 
             modelBuilder.Entity("MedOne.Web.Models.Invitacion", b =>
@@ -280,9 +364,6 @@ namespace MedOne.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("AccesoClinicoTotal")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Auth0Id")
                         .IsRequired()
                         .HasColumnType("text");
@@ -357,7 +438,7 @@ namespace MedOne.Web.Migrations
                     b.HasOne("MedOne.Web.Models.Cita", "Cita")
                         .WithMany()
                         .HasForeignKey("CitaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("MedOne.Web.Models.Clinica", "Clinica")
@@ -375,7 +456,13 @@ namespace MedOne.Web.Migrations
                     b.HasOne("MedOne.Web.Models.Paciente", "Paciente")
                         .WithMany()
                         .HasForeignKey("PacienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedOne.Web.Models.Profesional", "Profesional")
+                        .WithMany()
+                        .HasForeignKey("ProfesionalId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Cita");
@@ -385,6 +472,8 @@ namespace MedOne.Web.Migrations
                     b.Navigation("Especialidad");
 
                     b.Navigation("Paciente");
+
+                    b.Navigation("Profesional");
                 });
 
             modelBuilder.Entity("MedOne.Web.Models.Invitacion", b =>

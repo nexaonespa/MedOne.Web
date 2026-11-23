@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.EntityFrameworkCore
 @using MedOne.Web.Models
+@using MedOne.Web.FichaClinica
 @inject AppDbContext Db
 @inject NavigationManager Nav
 
@@ -71,7 +72,7 @@ else
     }
     else
     {
-        <table class="table table-striped">
+        <table class="table table-striped align-middle">
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -79,6 +80,10 @@ else
                     <th>Edad</th>
                     <th>Email</th>
                     <th>Teléfono</th>
+                    @if (puedeVerFichas)
+                    {
+                        <th></th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -90,6 +95,12 @@ else
                         <td>@Edad(p.FechaNacimiento) años</td>
                         <td>@p.Email</td>
                         <td>@p.Telefono</td>
+                        @if (puedeVerFichas)
+                        {
+                            <td>
+                                <a class="btn btn-sm btn-outline-dark" href="pacientes/@p.Id/historial">Historial</a>
+                            </td>
+                        }
                     </tr>
                 }
             </tbody>
@@ -105,6 +116,7 @@ else
     private DatosPaciente nuevo = new();
     private bool cargando = true;
     private bool guardando;
+    private bool puedeVerFichas;
     private string? mensaje;
     private string? error;
 
@@ -125,6 +137,10 @@ else
             Nav.NavigateTo("/", forceLoad: true);
             return;
         }
+
+        // El botón Historial solo aparece para quien puede ver fichas
+        // (el acceso real a cada paciente se valida en la página del historial)
+        puedeVerFichas = AccesoFichas.PuedeVerFichas(user);
 
         await CargarPacientes();
     }

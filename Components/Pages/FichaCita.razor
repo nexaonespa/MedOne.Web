@@ -1,0 +1,253 @@
+﻿@page "/ficha/{CitaId:guid}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@using MedOne.Web.FichaClinica
+@using MedOne.Web.Utilidades
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Ficha clínica</PageTitle>
+
+<h3>Ficha clínica</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else if (errorAcceso is not null)
+{
+    <div class="alert alert-warning">@errorAcceso</div>
+    <a href="agenda">Volver a la agenda</a>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div><strong>Paciente:</strong> @cita!.Paciente?.Nombre (@cita.Paciente?.Rut)</div>
+            <div><strong>Fecha de nacimiento:</strong> @cita.Paciente?.FechaNacimiento.ToString("dd-MM-yyyy")</div>
+            <div><strong>Atención:</strong> @HoraChile.ALocal(cita.FechaHoraInicio).ToString("dd-MM-yyyy HH:mm")</div>
+            <div><strong>Profesional:</strong> @profesional!.Nombre (@profesional.Especialidad?.Nombre)</div>
+            <a class="d-inline-block mt-2" href="pacientes/@cita.PacienteId/historial">Ver historial del paciente</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Registro de la atención</h5>
+
+            <div class="mb-3">
+                <label class="form-label">Motivo de consulta</label>
+                <textarea class="form-control" rows="2" @bind="contenido.MotivoConsulta"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Evolución / desarrollo de la sesión</label>
+                <textarea class="form-control" rows="4" @bind="contenido.Evolucion"></textarea>
+            </div>
+
+            @foreach (var campo in campos)
+            {
+                <div class="mb-3">
+                    <label class="form-label">@campo.Etiqueta</label>
+                    @if (campo.Largo)
+                    {
+                        <textarea class="form-control" rows="3" @bind="contenido.Extras[campo.Clave]"></textarea>
+                    }
+                    else
+                    {
+                        <input class="form-control" @bind="contenido.Extras[campo.Clave]" />
+                    }
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Diagnóstico o impresión diagnóstica</label>
+                <textarea class="form-control" rows="2" @bind="contenido.Diagnostico"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Plan e indicaciones</label>
+                <textarea class="form-control" rows="3" @bind="contenido.Plan"></textarea>
+            </div>
+
+            <button class="btn btn-primary" @onclick="Guardar" disabled="@guardando">
+                @(guardando ? "Guardando..." : "Guardar ficha")
+            </button>
+
+            @if (ficha?.FechaModificacion is DateTime modificada)
+            {
+                <small class="text-muted ms-2">Última modificación: @HoraChile.ALocal(modificada).ToString("dd-MM-yyyy HH:mm")</small>
+            }
+
+            @if (mensaje is not null)
+            {
+                <div class="alert alert-success mt-3">@mensaje</div>
+            }
+            @if (error is not null)
+            {
+                <div class="alert alert-danger mt-3">@error</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid CitaId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private ClaimsPrincipal actor = new();
+    private Guid miProfesionalId;
+    private Cita? cita;
+    private Profesional? profesional;
+    private Ficha? ficha;
+    private ContenidoFicha contenido = new();
+    private CampoExtra[] campos = [];
+    private bool cargando = true;
+    private bool guardando;
+    private string? errorAcceso;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        actor = (await AuthState).User;
+
+        if (actor.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        // Solo quien atiende pacientes escribe fichas
+        if (AccesoFichas.ProfesionalDe(actor) is not Guid propio)
+        {
+            errorAcceso = "Solo los profesionales pueden escribir fichas clínicas.";
+            cargando = false;
+            return;
+        }
+        miProfesionalId = propio;
+
+        cita = await Db.Citas.AsNoTracking()
+            .Include(c => c.Paciente)
+            .FirstOrDefaultAsync(c => c.Id == CitaId);
+
+        // Solo el profesional de la cita puede escribir su ficha
+        if (cita is null || cita.ProfesionalId != miProfesionalId)
+        {
+            errorAcceso = "Solo el profesional que atiende esta cita puede escribir su ficha.";
+            cargando = false;
+            return;
+        }
+
+        if (cita.Estado == "Cancelada")
+        {
+            errorAcceso = "No se puede escribir la ficha de una cita cancelada.";
+            cargando = false;
+            return;
+        }
+
+        profesional = await Db.Profesionales.AsNoTracking()
+            .Include(p => p.Especialidad)
+            .FirstAsync(p => p.Id == miProfesionalId);
+
+        ficha = await Db.Fichas.FirstOrDefaultAsync(f => f.CitaId == CitaId);
+
+        if (ficha is not null)
+        {
+            contenido = ContenidoFicha.DesdeJson(ficha.DatosJson);
+            campos = CamposFicha.Para(ficha.EspecialidadId);
+
+            // Registro de acceso (artículo 9 del reglamento de fichas clínicas)
+            Db.RegistrarAuditoria(actor, "AccesoFicha",
+                $"Abrió la ficha de la atención del {HoraChile.ALocal(cita.FechaHoraInicio):dd-MM-yyyy HH:mm}",
+                cita.PacienteId, ficha.Id);
+            await Db.SaveChangesAsync();
+        }
+        else
+        {
+            campos = CamposFicha.Para(profesional.EspecialidadId);
+        }
+
+        // Asegura que existan todos los campos de la especialidad
+        foreach (var campo in campos)
+            contenido.Extras.TryAdd(campo.Clave, string.Empty);
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensaje = null;
+        error = null;
+
+        try
+        {
+            var nuevoJson = contenido.ToJson();
+            var fechaAtencion = HoraChile.ALocal(cita!.FechaHoraInicio).ToString("dd-MM-yyyy HH:mm");
+
+            if (ficha is null)
+            {
+                // Primera vez: se crea la ficha
+                ficha = new Ficha
+                {
+                    CitaId = cita.Id,
+                    PacienteId = cita.PacienteId,
+                    ProfesionalId = miProfesionalId,
+                    EspecialidadId = profesional!.EspecialidadId,
+                    DatosJson = nuevoJson
+                };
+                Db.Fichas.Add(ficha);
+
+                Db.RegistrarAuditoria(actor, "CreacionFicha",
+                    $"Creó la ficha de la atención del {fechaAtencion}", cita.PacienteId, ficha.Id);
+            }
+            else
+            {
+                // Solo el autor puede editar
+                if (ficha.ProfesionalId != miProfesionalId)
+                {
+                    error = "Solo el autor puede modificar esta ficha.";
+                    return;
+                }
+
+                if (nuevoJson == ficha.DatosJson)
+                {
+                    mensaje = "No hay cambios para guardar.";
+                    return;
+                }
+
+                // Se guarda la versión anterior antes de reemplazarla
+                Db.FichaVersiones.Add(new FichaVersion
+                {
+                    FichaId = ficha.Id,
+                    DatosJson = ficha.DatosJson,
+                    UsuarioId = Guid.TryParse(actor.FindFirst("usuario_id")?.Value, out var uid) ? uid : null,
+                    UsuarioNombre = actor.Identity?.Name ?? string.Empty
+                });
+
+                ficha.DatosJson = nuevoJson;
+                ficha.FechaModificacion = DateTime.UtcNow;
+
+                Db.RegistrarAuditoria(actor, "EdicionFicha",
+                    $"Modificó la ficha de la atención del {fechaAtencion}", cita.PacienteId, ficha.Id);
+            }
+
+            await Db.SaveChangesAsync();
+            mensaje = "Ficha guardada.";
+        }
+        catch (Exception)
+        {
+            Db.ChangeTracker.Clear();
+            ficha = await Db.Fichas.FirstOrDefaultAsync(f => f.CitaId == CitaId);
+            error = "No se pudo guardar la ficha. Intenta de nuevo; tu texto sigue en pantalla.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

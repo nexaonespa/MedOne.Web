@@ -1,0 +1,136 @@
+﻿@page "/pacientes/{PacienteId:guid}/historial"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using MedOne.Web.Models
+@using MedOne.Web.FichaClinica
+@using MedOne.Web.Utilidades
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Historial clínico</PageTitle>
+
+<h3>Historial clínico</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else if (errorAcceso is not null)
+{
+    <div class="alert alert-warning">@errorAcceso</div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div><strong>Paciente:</strong> @paciente!.Nombre (@paciente.Rut)</div>
+            <div><strong>Fecha de nacimiento:</strong> @paciente.FechaNacimiento.ToString("dd-MM-yyyy")</div>
+            <div><strong>Fichas registradas:</strong> @fichas.Count</div>
+        </div>
+    </div>
+
+    @if (fichas.Count == 0)
+    {
+        <p class="text-muted">Este paciente todavía no tiene fichas registradas.</p>
+    }
+
+    @foreach (var f in fichas)
+    {
+        var c = ContenidoFicha.DesdeJson(f.DatosJson);
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <strong>@HoraChile.ALocal(f.Cita!.FechaHoraInicio).ToString("dd-MM-yyyy HH:mm")</strong>
+                    · @f.Profesional?.Nombre (@f.Especialidad?.Nombre)
+                </span>
+                @if (f.ProfesionalId == miProfesionalId)
+                {
+                    <a class="btn btn-sm btn-outline-primary" href="ficha/@f.CitaId">Editar</a>
+                }
+            </div>
+            <div class="card-body" style="white-space: pre-wrap;">
+                @MostrarCampo("Motivo de consulta", c.MotivoConsulta)
+                @MostrarCampo("Evolución / desarrollo de la sesión", c.Evolucion)
+                @foreach (var campo in CamposFicha.Para(f.EspecialidadId))
+                {
+                    @MostrarCampo(campo.Etiqueta, c.Extras.GetValueOrDefault(campo.Clave))
+                }
+                @MostrarCampo("Diagnóstico o impresión diagnóstica", c.Diagnostico)
+                @MostrarCampo("Plan e indicaciones", c.Plan)
+
+                @if (f.FechaModificacion is DateTime modificada)
+                {
+                    <small class="text-muted">Modificada el @HoraChile.ALocal(modificada).ToString("dd-MM-yyyy HH:mm")</small>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid PacienteId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private Paciente? paciente;
+    private List<Ficha> fichas = new();
+    private Guid? miProfesionalId;
+    private bool cargando = true;
+    private string? errorAcceso;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = (await AuthState).User;
+
+        if (actor.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        miProfesionalId = AccesoFichas.ProfesionalDe(actor);
+
+        // Director Clínico: todos. Profesional: solo pacientes que atiende.
+        if (!await AccesoFichas.PuedeLeerPaciente(Db, actor, PacienteId))
+        {
+            errorAcceso = "No tienes acceso a las fichas de este paciente.";
+            cargando = false;
+            return;
+        }
+
+        paciente = await Db.Pacientes.AsNoTracking().FirstOrDefaultAsync(p => p.Id == PacienteId);
+        if (paciente is null)
+        {
+            errorAcceso = "Paciente no encontrado.";
+            cargando = false;
+            return;
+        }
+
+        fichas = await Db.Fichas.AsNoTracking()
+            .Include(f => f.Cita)
+            .Include(f => f.Profesional)
+            .Include(f => f.Especialidad)
+            .Where(f => f.PacienteId == PacienteId)
+            .OrderByDescending(f => f.Cita!.FechaHoraInicio)
+            .ToListAsync();
+
+        // Registro de acceso (artículo 9 del reglamento de fichas clínicas)
+        Db.RegistrarAuditoria(actor, "AccesoHistorial",
+            $"Abrió el historial clínico ({fichas.Count} fichas)", PacienteId);
+        await Db.SaveChangesAsync();
+
+        cargando = false;
+    }
+
+    // Muestra un campo solo si tiene contenido
+    private RenderFragment MostrarCampo(string etiqueta, string? valor) => __builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(valor))
+        {
+            <div class="mb-2"><strong>@etiqueta:</strong> @valor</div>
+        }
+    };
+}

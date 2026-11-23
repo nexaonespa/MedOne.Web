@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using MedOne.Web.Models;
 using MedOne.Web.Seguridad;
 
@@ -23,8 +24,10 @@ public class AppDbContext : DbContext
     public DbSet<Paciente> Pacientes => Set<Paciente>();
     public DbSet<Cita> Citas => Set<Cita>();
     public DbSet<Ficha> Fichas => Set<Ficha>();
+    public DbSet<FichaVersion> FichaVersiones => Set<FichaVersion>();
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Invitacion> Invitaciones => Set<Invitacion>();
+    public DbSet<EventoAuditoria> EventosAuditoria => Set<EventoAuditoria>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,29 +53,88 @@ public class AppDbContext : DbContext
             e.Property(i => i.Rol).HasConversion<string>();
         });
 
+        modelBuilder.Entity<EventoAuditoria>(e =>
+        {
+            e.HasIndex(a => new { a.ClinicaId, a.Fecha });
+            e.HasIndex(a => a.PacienteId);
+        });
+
+        modelBuilder.Entity<Ficha>(e =>
+        {
+            e.HasIndex(f => f.CitaId).IsUnique(); // una ficha por cita
+
+            // Si se intenta borrar una cita, paciente o profesional con fichas, la base lo impide
+            e.HasOne(f => f.Cita).WithMany().HasForeignKey(f => f.CitaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(f => f.Paciente).WithMany().HasForeignKey(f => f.PacienteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(f => f.Profesional).WithMany().HasForeignKey(f => f.ProfesionalId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FichaVersion>(e =>
+        {
+            e.HasIndex(v => v.FichaId);
+        });
+
         // Filtro automático: cada clínica ve solo sus propios datos
         modelBuilder.Entity<Profesional>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Paciente>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Cita>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Ficha>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
+        modelBuilder.Entity<FichaVersion>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
         modelBuilder.Entity<Invitacion>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
+        modelBuilder.Entity<EventoAuditoria>().HasQueryFilter(e => ClinicaIdActual != null && e.ClinicaId == ClinicaIdActual);
+    }
+
+    // Agrega un evento de auditoría (se guarda junto con el resto de los cambios)
+    public void RegistrarAuditoria(ClaimsPrincipal actor, string tipo, string detalle,
+        Guid? pacienteId = null, Guid? fichaId = null)
+    {
+        EventosAuditoria.Add(new EventoAuditoria
+        {
+            UsuarioId = Guid.TryParse(actor.FindFirst("usuario_id")?.Value, out var id) ? id : null,
+            UsuarioNombre = actor.Identity?.Name ?? string.Empty,
+            Tipo = tipo,
+            Detalle = detalle,
+            PacienteId = pacienteId,
+            FichaId = fichaId
+        });
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        AsignarClinica();
+        ValidarAntesDeGuardar();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        AsignarClinica();
+        ValidarAntesDeGuardar();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    // Al crear registros nuevos, les pone la clínica del usuario automáticamente
-    private void AsignarClinica()
+    private void ValidarAntesDeGuardar()
     {
+        // La auditoría solo se agrega, nunca se modifica ni se borra
+        foreach (var entrada in ChangeTracker.Entries<EventoAuditoria>())
+        {
+            if (entrada.State is EntityState.Modified or EntityState.Deleted)
+                throw new InvalidOperationException("El registro de auditoría no se puede modificar ni eliminar.");
+        }
+
+        // Las versiones anteriores de fichas tampoco
+        foreach (var entrada in ChangeTracker.Entries<FichaVersion>())
+        {
+            if (entrada.State is EntityState.Modified or EntityState.Deleted)
+                throw new InvalidOperationException("El historial de fichas no se puede modificar ni eliminar.");
+        }
+
+        // Las fichas clínicas no se eliminan
+        foreach (var entrada in ChangeTracker.Entries<Ficha>())
+        {
+            if (entrada.State == EntityState.Deleted)
+                throw new InvalidOperationException("Las fichas clínicas no se pueden eliminar.");
+        }
+
+        // Al crear registros nuevos, les pone la clínica del usuario automáticamente
         foreach (var entrada in ChangeTracker.Entries<IPerteneceAClinica>())
         {
             if (entrada.State == EntityState.Added && entrada.Entity.ClinicaId == Guid.Empty)

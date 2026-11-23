@@ -11,15 +11,12 @@ public class Usuario
     public Guid ClinicaId { get; set; }
     public Clinica? Clinica { get; set; }
 
-    // Si el usuario atiende pacientes (Profesional, o Administrador que también es clínico)
+    // Si el usuario atiende pacientes (Profesional, Director Clínico, o Administrador que también es clínico)
     public Guid? ProfesionalId { get; set; }
     public Profesional? Profesional { get; set; }
 
     public Guid? PacienteId { get; set; }
     public Paciente? Paciente { get; set; }
-
-    // Puede leer las fichas de todos los pacientes de la clínica (por ejemplo, director técnico)
-    public bool AccesoClinicoTotal { get; set; }
 
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 }

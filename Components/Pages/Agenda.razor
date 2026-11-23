@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.EntityFrameworkCore
 @using MedOne.Web.Models
+@using MedOne.Web.FichaClinica
 @using MedOne.Web.Utilidades
 @inject AppDbContext Db
 @inject NavigationManager Nav
@@ -135,9 +136,22 @@ else
                         {
                             <td>@c.Profesional?.Nombre</td>
                         }
-                        <td>@c.Paciente?.Nombre</td>
+                        <td>
+                            @if (puedeVerFichas)
+                            {
+                                <a href="pacientes/@c.PacienteId/historial">@c.Paciente?.Nombre</a>
+                            }
+                            else
+                            {
+                                @c.Paciente?.Nombre
+                            }
+                        </td>
                         <td><span class="badge @ClaseEstado(c.Estado)">@c.Estado</span></td>
                         <td>
+                            @if (c.ProfesionalId == miProfesionalId && c.Estado != "Cancelada")
+                            {
+                                <a class="btn btn-sm btn-outline-dark me-1" href="ficha/@c.Id">Ficha</a>
+                            }
                             @if (c.Estado == "Agendada")
                             {
                                 <button class="btn btn-sm btn-outline-primary me-1"
@@ -179,9 +193,13 @@ else
     private string? error;
     private string? errorAcceso;
 
-    // Si el usuario es Profesional, solo trabaja con sus propias citas
+    // Si el usuario tiene rol Profesional, solo trabaja con sus propias citas
     private bool esProfesional;
     private Guid? profesionalPropioId;
+
+    // Profesional vinculado al usuario (cualquier rol), para el botón Ficha
+    private Guid? miProfesionalId;
+    private bool puedeVerFichas;
 
     protected override async Task OnInitializedAsync()
     {
@@ -200,17 +218,19 @@ else
             return;
         }
 
+        miProfesionalId = AccesoFichas.ProfesionalDe(user);
+        puedeVerFichas = AccesoFichas.PuedeVerFichas(user);
         esProfesional = user.IsInRole(nameof(Rol.Profesional));
 
         if (esProfesional)
         {
-            if (Guid.TryParse(user.FindFirst("profesional_id")?.Value, out var id))
+            if (miProfesionalId is Guid id)
             {
                 profesionalPropioId = id;
             }
             else
             {
-                errorAcceso = "Tu usuario no está vinculado a un profesional. Pide al administrador que revise tu invitación.";
+                errorAcceso = "Tu usuario no está vinculado a un profesional. Pide al administrador que revise tu usuario.";
                 cargando = false;
                 return;
             }
