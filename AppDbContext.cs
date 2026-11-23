@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MedOne.Web.Models;
 using MedOne.Web.Seguridad;
@@ -28,6 +28,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Invitacion> Invitaciones => Set<Invitacion>();
     public DbSet<EventoAuditoria> EventosAuditoria => Set<EventoAuditoria>();
+    public DbSet<SolicitudContacto> SolicitudesContacto => Set<SolicitudContacto>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FichaVersion>(e =>
         {
             e.HasIndex(v => v.FichaId);
+        });
+
+        // Mensajes del formulario de contacto de la portada
+        modelBuilder.Entity<SolicitudContacto>(e =>
+        {
+            e.Property(s => s.Nombre).HasMaxLength(120);
+            e.Property(s => s.Email).HasMaxLength(160);
+            e.Property(s => s.Telefono).HasMaxLength(40);
+            e.Property(s => s.TipoCentro).HasMaxLength(40);
+            e.Property(s => s.Mensaje).HasMaxLength(2000);
+            e.HasIndex(s => s.Fecha);
         });
 
         // Filtro automático: cada clínica ve solo sus propios datos

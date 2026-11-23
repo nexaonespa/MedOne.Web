@@ -10,10 +10,12 @@ namespace MedOne.Web.Seguridad;
 public class UsuarioClaimsTransformation : IClaimsTransformation
 {
     private readonly AppDbContext _db;
+    private readonly IHttpContextAccessor _http;
 
-    public UsuarioClaimsTransformation(AppDbContext db)
+    public UsuarioClaimsTransformation(AppDbContext db, IHttpContextAccessor http)
     {
         _db = db;
+        _http = http;
     }
 
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
@@ -23,6 +25,11 @@ public class UsuarioClaimsTransformation : IClaimsTransformation
 
         // Evita agregar los datos dos veces
         if (principal.HasClaim(c => c.Type == "clinica_id"))
+            return principal;
+
+        // Los archivos (favicon, imágenes, CSS, JS) no necesitan consultar la base de datos
+        var ruta = _http.HttpContext?.Request.Path.Value ?? string.Empty;
+        if (Path.HasExtension(ruta))
             return principal;
 
         var auth0Id = principal.FindFirstValue(ClaimTypes.NameIdentifier);

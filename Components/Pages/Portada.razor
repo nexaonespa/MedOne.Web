@@ -1,0 +1,373 @@
+@page "/"
+@layout MedOne.Web.Components.Layout.PortadaLayout
+@using System.ComponentModel.DataAnnotations
+@using MedOne.Web.Models
+@inject AppDbContext Db
+
+<PageTitle>MedOne – Gestión para centros de salud</PageTitle>
+
+<HeadContent>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="description" content="MedOne: agenda, pacientes y ficha clínica por especialidad para centros de salud, en una plataforma segura en la nube." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+</HeadContent>
+
+<div class="pt">
+    <header class="pt-nav">
+        <div class="pt-contenedor">
+            <a class="pt-logo" href="/"><img src="/favicon.png" alt="" /><span class="pt-logo-texto">Med<span>One</span></span></a>
+            <nav class="pt-enlaces">
+                <a href="#para-quien">Para quién</a>
+                <a href="#funciones">Funciones</a>
+                <a href="#especialidades">Especialidades</a>
+                <a href="#seguridad">Seguridad</a>
+                <a href="#contacto">Contacto</a>
+                <AuthorizeView>
+                    <Authorized><a class="pt-btn pt-btn-lima pt-btn-chico" href="inicio">Ir a mi panel</a></Authorized>
+                    <NotAuthorized><a class="pt-btn pt-btn-lima pt-btn-chico" href="Account/Login?returnUrl=/inicio" data-enhance-nav="false">Ingresar</a></NotAuthorized>
+                </AuthorizeView>
+            </nav>
+        </div>
+    </header>
+
+    <section class="pt-hero">
+        <div class="pt-contenedor">
+            <div>
+                <span class="pt-etiqueta"><i class="pt-punto"></i> Para clínicas, centros médicos y profesionales independientes</span>
+                <h1>Tu clínica, tu centro o tu consulta, <span>en un solo lugar.</span></h1>
+                <p class="pt-hero-texto">MedOne reúne agenda, pacientes, ficha clínica por especialidad y pagos en línea en una plataforma segura y en la nube, pensada para clínicas, centros médicos y profesionales que atienden por su cuenta.</p>
+                <div class="pt-acciones">
+                    <AuthorizeView>
+                        <Authorized><a class="pt-btn pt-btn-lima" href="inicio">Ir a mi panel <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></Authorized>
+                        <NotAuthorized><a class="pt-btn pt-btn-lima" href="Account/Login?returnUrl=/inicio" data-enhance-nav="false">Ingresar a MedOne <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></NotAuthorized>
+                    </AuthorizeView>
+                    <a class="pt-btn pt-btn-borde" href="#para-quien">Conocer más</a>
+                </div>
+                <div class="pt-cifras">
+                    <div><strong>6</strong><small>especialidades</small></div>
+                    <div><strong>5</strong><small>roles de usuario</small></div>
+                    <div><strong>100%</strong><small>en la nube</small></div>
+                    <div><strong>4</strong><small>capas de protección</small></div>
+                </div>
+            </div>
+
+            <div class="pt-maqueta" aria-hidden="true">
+                <div class="pt-ventana">
+                    <div class="pt-ventana-barra"><i></i><i></i><i></i></div>
+                    <div class="pt-ventana-cuerpo">
+                        <div class="pt-ventana-menu">
+                            <b>Med<span>One</span></b>
+                            <i></i><i class="activo"></i><i></i><i></i>
+                        </div>
+                        <div class="pt-ventana-contenido">
+                            <div class="pt-ventana-titulo"><strong>Agenda de hoy</strong><small>4 citas</small></div>
+                            <div class="pt-cita"><time>09:00</time><div><b>Valentina Rojas</b><em>Psicología</em></div><span class="pt-estado c">Completada</span></div>
+                            <div class="pt-cita"><time>10:00</time><div><b>Matías Fuentes</b><em>Kinesiología</em></div><span class="pt-estado f">Confirmada</span></div>
+                            <div class="pt-cita"><time>11:30</time><div><b>Sofía Morales</b><em>Fonoaudiología</em></div><span class="pt-estado f">Confirmada</span></div>
+                            <div class="pt-cita"><time>12:15</time><div><b>Tomás Vera</b><em>Medicina</em></div><span class="pt-estado a">Agendada</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-flotante pt-flotante-1">
+                    <span class="pt-flotante-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span>
+                    <div><b>Pago recibido · $50.000</b><small>Consulta de Valentina Rojas</small></div>
+                </div>
+                <div class="pt-flotante pt-flotante-2">
+                    <span class="pt-flotante-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <div><b>Datos protegidos</b><small>Escudo MedOne activo</small></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-seccion pt-seccion-suave" id="para-quien">
+        <div class="pt-contenedor">
+            <div class="pt-encabezado">
+                <span class="pt-sobretitulo">Para quién es MedOne</span>
+                <h2>Una plataforma, tres formas de atender</h2>
+                <p>Ya sea que dirijas una clínica, un centro médico o tu propia consulta, MedOne se adapta al tamaño y la forma de trabajar de tu equipo.</p>
+            </div>
+            <div class="pt-grilla">
+                <article class="pt-tarjeta pt-publico">
+                    <div class="pt-icono pt-icono-grande"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M12 7v6M9 10h6M10 21v-4h4v4"/></svg></div>
+                    <h3>Clínicas</h3>
+                    <p>Para instituciones con varios profesionales y especialidades que necesitan coordinar agenda, fichas y equipos.</p>
+                    <ul><li>Varias especialidades en una sola plataforma</li><li>Roles para dirección, administración y recepción</li><li>Director clínico con visión completa</li></ul>
+                </article>
+                <article class="pt-tarjeta pt-publico">
+                    <div class="pt-icono pt-icono-grande"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21h20M4 21V10l8-6 8 6v11"/><path d="M9 21v-5h6v5M12 9v3M10.5 10.5h3"/></svg></div>
+                    <h3>Centros médicos</h3>
+                    <p>Para centros de salud mental, rehabilitación o atención multidisciplinaria que buscan ordenar su operación diaria.</p>
+                    <ul><li>Agenda compartida por profesional</li><li>Historial clínico unificado por paciente</li><li>Cobro de atenciones en línea</li></ul>
+                </article>
+                <article class="pt-tarjeta pt-publico">
+                    <div class="pt-icono pt-icono-grande"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/><path d="M12 14v3M10.5 15.5h3"/></svg></div>
+                    <h3>Profesionales independientes</h3>
+                    <p>Para quienes atienden por su cuenta y quieren una consulta digital, ordenada y profesional sin infraestructura propia.</p>
+                    <ul><li>Tu agenda y tus fichas en cualquier dispositivo</li><li>Pagos en línea de tus pacientes</li><li>Lista para crecer si sumas colegas</li></ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-seccion" id="funciones">
+        <div class="pt-contenedor">
+            <div class="pt-encabezado">
+                <span class="pt-sobretitulo">Funciones</span>
+                <h2>Todo lo que tu centro necesita para el día a día</h2>
+                <p>Desde la primera cita hasta el historial completo del paciente, con la información ordenada y protegida.</p>
+            </div>
+            <div class="pt-grilla">
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></div>
+                    <h3>Agenda inteligente</h3>
+                    <p>Agenda por día y por profesional, con validación automática de cruces de horario y estados de cada cita.</p>
+                </article>
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg></div>
+                    <h3>Ficha por especialidad</h3>
+                    <p>Cada disciplina registra sus propios campos: signos vitales, evaluación funcional, instrumentos aplicados y más.</p>
+                </article>
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg></div>
+                    <h3>Historial clínico</h3>
+                    <p>Todas las atenciones del paciente en un solo lugar, disponibles solo para quienes participan en su atención.</p>
+                </article>
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+                    <h3>Pagos en línea</h3>
+                    <p>Cobra consultas y sesiones con pasarela de pago integrada: Webpay, tarjetas y transferencias, conciliado con cada cita.</p>
+                </article>
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                    <h3>Roles para cada equipo</h3>
+                    <p>Director clínico, administración, coordinación y profesionales: cada persona ve exactamente lo que necesita.</p>
+                </article>
+                <article class="pt-tarjeta">
+                    <div class="pt-icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                    <h3>Trazabilidad completa</h3>
+                    <p>Cada acceso y cada cambio a una ficha queda registrado, con su autor y fecha, sin posibilidad de borrarlo.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-seccion pt-seccion-suave">
+        <div class="pt-contenedor">
+            <div class="pt-encabezado">
+                <span class="pt-sobretitulo">Cómo funciona</span>
+                <h2>Empieza a trabajar en tres pasos</h2>
+            </div>
+            <div class="pt-pasos">
+                <div class="pt-paso">
+                    <h3>Crea tu espacio</h3>
+                    <p>Registra tu clínica, centro médico o consulta independiente en menos de un minuto.</p>
+                </div>
+                <div class="pt-paso">
+                    <h3>Suma a tu equipo</h3>
+                    <p>Invita a coordinadores y profesionales con su rol y especialidad, o trabaja por tu cuenta.</p>
+                </div>
+                <div class="pt-paso">
+                    <h3>Atiende, registra y cobra</h3>
+                    <p>Agenda, completa la ficha y recibe el pago de cada atención desde cualquier dispositivo.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-seccion" id="especialidades">
+        <div class="pt-contenedor">
+            <div class="pt-encabezado">
+                <span class="pt-sobretitulo">Especialidades</span>
+                <h2>Una ficha que habla el idioma de cada profesional</h2>
+                <p>MedOne adapta el registro clínico a cada disciplina, para que centros multidisciplinarios trabajen en una sola plataforma.</p>
+            </div>
+            <div class="pt-chips"><span class="pt-chip">Médico</span><span class="pt-chip">Psicólogo</span><span class="pt-chip">Kinesiólogo</span><span class="pt-chip">Fonoaudiólogo</span><span class="pt-chip">Terapeuta Ocupacional</span><span class="pt-chip">Neuropsicólogo</span><span class="pt-chip pt-chip-mas">+ Nuevas especialidades según tus necesidades</span></div>
+            <p class="pt-nota">¿Tu disciplina no está en la lista? MedOne incorpora nuevas especialidades y campos de ficha según las necesidades específicas de cada centro. <a href="#contacto">Cuéntanos qué necesitas</a>.</p>
+        </div>
+    </section>
+
+    <section class="pt-seccion pt-seguridad" id="seguridad">
+        <div class="pt-contenedor">
+            <div>
+                <div class="pt-escudo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8.5a2 2 0 0 1 4 0V10"/></svg><div><b>Escudo MedOne</b><small>Protección de datos en 4 capas</small></div></div>
+                <span class="pt-sobretitulo">Seguridad y normativa</span>
+                <h2>Los datos de tus pacientes, protegidos por diseño</h2>
+                <p>MedOne fue creado pensando en la nueva Ley de Protección de Datos Personales. La privacidad no es un agregado: está presente en cada parte de la plataforma, desde la base de datos hasta cada pantalla.</p>
+                <div class="pt-normas"><span>Ley N.° 21.719 · Datos personales</span><span>Ley N.° 20.584 · Derechos del paciente</span><span>Decreto N.° 41 · Fichas clínicas</span></div>
+            </div>
+            <div class="pt-lista">
+                    <div class="pt-lista-item">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <div><b>Capa 1 · Aislamiento total</b><span>Cada clínica, centro o consulta tiene su propio espacio: sus datos nunca se mezclan ni son visibles para otros.</span></div>
+                    </div>
+                    <div class="pt-lista-item">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <div><b>Capa 2 · Acceso por relación clínica</b><span>Solo quienes atienden a un paciente pueden ver su historial. La recepción nunca ve información clínica.</span></div>
+                    </div>
+                    <div class="pt-lista-item">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <div><b>Capa 3 · Trazabilidad inalterable</b><span>Cada acceso y cada cambio queda registrado con autor y fecha, y cada ficha conserva sus versiones anteriores.</span></div>
+                    </div>
+                    <div class="pt-lista-item">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <div><b>Capa 4 · Cifrado y respaldo</b><span>Conexiones cifradas, inicio de sesión seguro y respaldos automáticos en la nube.</span></div>
+                    </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-seccion pt-seccion-suave" id="contacto">
+        <div class="pt-contenedor pt-contacto">
+            <div class="pt-contacto-info">
+                <span class="pt-sobretitulo">Contacto</span>
+                <h2>Conversemos sobre tu centro</h2>
+                <p>¿Tienes una clínica, un centro médico o atiendes de forma independiente? Escríbenos y te mostraremos cómo MedOne se adapta a tu forma de trabajar.</p>
+                <ul class="pt-contacto-lista">
+                    <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Respuesta en menos de 24 horas hábiles</span></li>
+                    <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Demostración personalizada y sin compromiso</span></li>
+                    <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Configuración de especialidades a tu medida</span></li>
+                </ul>
+            </div>
+            <div class="pt-form-caja">
+                @if (enviado)
+                {
+                    <div class="pt-enviado">
+                        <span class="pt-flotante-icono"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                        <div><b>¡Gracias por escribirnos!</b><p>Recibimos tu mensaje y te contactaremos en menos de 24 horas hábiles.</p></div>
+                    </div>
+                }
+                else
+                {
+                    <EditForm Model="Contacto" FormName="contacto" OnValidSubmit="EnviarContacto" class="pt-form" Enhance>
+                        <DataAnnotationsValidator />
+                        <div class="pt-campos">
+                            <div class="pt-campo">
+                                <label for="c-nombre">Nombre</label>
+                                <InputText id="c-nombre" class="pt-input" placeholder="Tu nombre" @bind-Value="Contacto!.Nombre" />
+                                <ValidationMessage For="() => Contacto!.Nombre" />
+                            </div>
+                            <div class="pt-campo">
+                                <label for="c-email">Correo electrónico</label>
+                                <InputText id="c-email" class="pt-input" placeholder="nombre@correo.cl" @bind-Value="Contacto!.Email" />
+                                <ValidationMessage For="() => Contacto!.Email" />
+                            </div>
+                            <div class="pt-campo">
+                                <label for="c-telefono">Teléfono (opcional)</label>
+                                <InputText id="c-telefono" class="pt-input" placeholder="+56 9 1234 5678" @bind-Value="Contacto!.Telefono" />
+                            </div>
+                            <div class="pt-campo">
+                                <label for="c-tipo">Tipo de centro</label>
+                                <InputSelect id="c-tipo" class="pt-input" @bind-Value="Contacto!.TipoCentro">
+                                    <option value="">Selecciona una opción...</option>
+                                    <option value="Clínica">Clínica</option>
+                                    <option value="Centro médico">Centro médico</option>
+                                    <option value="Profesional independiente">Profesional independiente</option>
+                                </InputSelect>
+                                <ValidationMessage For="() => Contacto!.TipoCentro" />
+                            </div>
+                            <div class="pt-campo pt-campo-ancho">
+                                <label for="c-mensaje">Mensaje</label>
+                                <InputTextArea id="c-mensaje" class="pt-input" rows="4" placeholder="Cuéntanos sobre tu centro, cuántos profesionales son y qué necesitas" @bind-Value="Contacto!.Mensaje" />
+                                <ValidationMessage For="() => Contacto!.Mensaje" />
+                            </div>
+                            <div class="pt-trampa" aria-hidden="true">
+                                <label for="c-web">Sitio web</label>
+                                <InputText id="c-web" tabindex="-1" autocomplete="off" @bind-Value="Contacto!.SitioWeb" />
+                            </div>
+                            <div class="pt-campo-ancho">
+                                <label class="pt-consentimiento">
+                                    <InputCheckbox @bind-Value="Contacto!.Acepta" />
+                                    <span>Acepto que MedOne utilice estos datos solo para responder mi solicitud.</span>
+                                </label>
+                                <ValidationMessage For="() => Contacto!.Acepta" />
+                            </div>
+                        </div>
+                        <button type="submit" class="pt-btn pt-btn-oscuro">Enviar mensaje <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="pt-final">
+        <div class="pt-contenedor">
+            <div class="pt-final-caja">
+                <h2>Lleva tu atención al siguiente nivel</h2>
+                <p>Clínicas, centros médicos y profesionales independientes ya pueden organizar su agenda, sus fichas y sus pagos en MedOne.</p>
+                <AuthorizeView>
+                    <Authorized><a class="pt-btn pt-btn-lima" href="inicio">Ir a mi panel <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></Authorized>
+                    <NotAuthorized><a class="pt-btn pt-btn-lima" href="Account/Login?returnUrl=/inicio" data-enhance-nav="false">Ingresar a MedOne <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </section>
+
+    <footer class="pt-pie">
+        <div class="pt-contenedor">
+            <a class="pt-logo pt-logo-pie" href="/" aria-label="MedOne"><img src="/favicon.png" alt="MedOne" /></a>
+            <span>© 2026 NexaOne</span>
+        </div>
+    </footer>
+</div>
+
+@code {
+    // Formulario de contacto (página estática: se envía como formulario web normal)
+    [SupplyParameterFromForm(FormName = "contacto")]
+    private DatosContacto? Contacto { get; set; }
+
+    private bool enviado;
+
+    protected override void OnInitialized() => Contacto ??= new();
+
+    private async Task EnviarContacto()
+    {
+        // Campo trampa: si un robot lo completa, fingimos éxito y no guardamos nada
+        if (!string.IsNullOrWhiteSpace(Contacto!.SitioWeb))
+        {
+            enviado = true;
+            return;
+        }
+
+        Db.SolicitudesContacto.Add(new SolicitudContacto
+        {
+            Nombre = Contacto.Nombre.Trim(),
+            Email = Contacto.Email.Trim().ToLowerInvariant(),
+            Telefono = Contacto.Telefono?.Trim() ?? string.Empty,
+            TipoCentro = Contacto.TipoCentro,
+            Mensaje = Contacto.Mensaje.Trim(),
+            AceptaContacto = Contacto.Acepta
+        });
+        await Db.SaveChangesAsync();
+        enviado = true;
+    }
+
+    public class DatosContacto
+    {
+        [Required(ErrorMessage = "Ingresa tu nombre")]
+        [StringLength(120)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ingresa tu correo")]
+        [EmailAddress(ErrorMessage = "El correo no es válido")]
+        [StringLength(160)]
+        public string Email { get; set; } = string.Empty;
+
+        [StringLength(40)]
+        public string? Telefono { get; set; }
+
+        [Required(ErrorMessage = "Selecciona el tipo de centro")]
+        public string TipoCentro { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Escribe tu mensaje")]
+        [StringLength(2000, ErrorMessage = "El mensaje es demasiado largo")]
+        public string Mensaje { get; set; } = string.Empty;
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Debes aceptar para que podamos contactarte")]
+        public bool Acepta { get; set; }
+
+        public string? SitioWeb { get; set; } // campo trampa contra robots
+    }
+}
