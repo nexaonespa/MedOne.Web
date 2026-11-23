@@ -10,11 +10,11 @@
         <div class="top-row px-4">
             <AuthorizeView>
                 <Authorized>
-                    <span>
+                    <span class="saludo">
                         Hola, @context.User.Identity?.Name
                         @if (context.User.FindFirst(ClaimTypes.Role)?.Value is string rol)
                         {
-                            <small class="text-muted">(@rol)</small>
+                            <span class="rol">@NombreRol(rol)</span>
                         }
                     </span>
                     <a href="/Account/Logout">Cerrar sesión</a>
@@ -23,7 +23,6 @@
                     <a href="/Account/Login">Iniciar sesión</a>
                 </NotAuthorized>
             </AuthorizeView>
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
         <article class="content px-4">
@@ -33,7 +32,15 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private static string NombreRol(string rol) => rol switch
+    {
+        "DirectorClinico" => "Director Clínico",
+        _ => rol
+    };
+}

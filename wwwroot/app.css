@@ -1,60 +1,522 @@
+/* =========================================================
+   MedOne – Hoja de estilos propia (sin Bootstrap)
+   Paleta: turquesa + acento lima #d3ff00
+   ========================================================= */
+:root {
+    --turquesa-oscuro: #0b4f5c;
+    --turquesa: #0e7490;
+    --turquesa-medio: #0891b2;
+    --turquesa-claro: #22b8cf;
+    --turquesa-suave: #ecfeff;
+    --lima: #d3ff00;
+    --texto: #1f2937;
+    --texto-suave: #6b7280;
+    --borde: #cbd5e1;
+    --borde-suave: #e5e7eb;
+    --fondo: #f3f8f9;
+    --blanco: #ffffff;
+    --exito: #15803d;
+    --peligro: #b91c1c;
+    --radio: 10px;
+    --sombra: 0 1px 3px rgba(11, 79, 92, .10);
+    --halo: 0 0 0 3px rgba(211, 255, 0, .65);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--texto);
+    background: var(--fondo);
 }
 
-a, .btn-link {
-    color: #006bb7;
+h1, h2, h3, h4, h5, h6 {
+    margin: 0 0 .75rem;
+    line-height: 1.25;
+    font-weight: 700;
+    color: var(--turquesa-oscuro);
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+h1 {
+    font-size: 1.75rem;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+h3 {
+    font-size: 1.5rem;
 }
 
-.content {
-    padding-top: 1.1rem;
+h5 {
+    font-size: 1.1rem;
+}
+
+h6 {
+    font-size: 1rem;
 }
 
 h1:focus {
     outline: none;
 }
 
+p {
+    margin: 0 0 1rem;
+}
+
+a {
+    color: var(--turquesa);
+}
+
+    a:hover {
+        color: var(--turquesa-oscuro);
+    }
+
+small, .small {
+    font-size: .85em;
+}
+
+.text-muted {
+    color: var(--texto-suave) !important;
+}
+
+/* ---------- Utilidades de espaciado y alineación ---------- */
+.mt-2 {
+    margin-top: .5rem !important;
+}
+
+.mt-3 {
+    margin-top: 1rem !important;
+}
+
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+.mb-2 {
+    margin-bottom: .5rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.me-1 {
+    margin-right: .25rem !important;
+}
+
+.me-2 {
+    margin-right: .5rem !important;
+}
+
+.ms-2 {
+    margin-left: .5rem !important;
+}
+
+.px-3 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+.px-4 {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}
+
+.ps-3 {
+    padding-left: 1rem !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-block {
+    display: block !important;
+}
+
+.d-inline-block {
+    display: inline-block !important;
+}
+
+.flex-column {
+    flex-direction: column !important;
+}
+
+.align-items-center {
+    align-items: center !important;
+}
+
+.align-items-end {
+    align-items: flex-end !important;
+}
+
+.justify-content-between {
+    justify-content: space-between !important;
+}
+
+.gap-2 {
+    gap: .5rem !important;
+}
+
+.container-fluid {
+    width: 100%;
+}
+
+.nav {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* ---------- Grilla responsive ---------- */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -.5rem;
+}
+
+    .row > * {
+        width: 100%;
+        padding: 0 .5rem;
+    }
+
+    .row.g-3 {
+        row-gap: 1rem;
+    }
+
+@media (min-width: 768px) {
+    .col-md-3 {
+        width: 25%;
+    }
+
+    .col-md-4 {
+        width: 33.3333%;
+    }
+
+    .col-md-6 {
+        width: 50%;
+    }
+}
+
+/* ---------- Tarjetas ---------- */
+.card {
+    background: var(--blanco);
+    border: 1px solid var(--borde-suave);
+    border-top: 4px solid var(--turquesa-medio);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    overflow-x: auto;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card-title {
+    color: var(--turquesa-oscuro);
+}
+
+.card-header {
+    background: var(--turquesa-suave);
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid var(--borde-suave);
+}
+
+/* ---------- Formularios ---------- */
+.form-label {
+    display: block;
+    margin-bottom: .3rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--turquesa-oscuro);
+}
+
+.form-control, .form-select {
+    display: block;
+    width: 100%;
+    padding: .55rem .75rem;
+    font: inherit;
+    color: var(--texto);
+    background-color: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+textarea.form-control {
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
+.form-select {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%230e7490' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 12px;
+}
+
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--turquesa-medio);
+        box-shadow: var(--halo);
+    }
+
+    .form-control:disabled, .form-select:disabled {
+        background-color: #f1f5f9;
+        color: var(--texto-suave);
+    }
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.form-check-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--turquesa);
+}
+
+/* Validaciones de Blazor */
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    border-color: var(--exito);
 }
 
 .invalid {
-    outline: 1px solid #e50000;
+    border-color: var(--peligro) !important;
 }
 
 .validation-message {
-    color: #e50000;
+    margin-top: .25rem;
+    font-size: .85rem;
+    color: var(--peligro);
 }
 
+.validation-errors {
+    margin: 0 0 1rem;
+    padding: .75rem 1rem .75rem 2rem;
+    color: var(--peligro);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    padding: .55rem 1.1rem;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+
+    .btn:focus-visible {
+        outline: none;
+        box-shadow: var(--halo);
+    }
+
+    .btn:disabled {
+        opacity: .6;
+        cursor: not-allowed;
+    }
+
+.btn-sm {
+    padding: .3rem .65rem;
+    font-size: .82rem;
+}
+
+.btn-primary {
+    background: var(--turquesa);
+    color: #fff;
+}
+
+    .btn-primary:hover:not(:disabled) {
+        background: var(--turquesa-oscuro);
+        color: var(--lima);
+    }
+
+.btn-outline-primary {
+    background: #fff;
+    color: var(--turquesa);
+    border-color: var(--turquesa);
+}
+
+    .btn-outline-primary:hover {
+        background: var(--turquesa);
+        color: #fff;
+    }
+
+.btn-outline-secondary {
+    background: #fff;
+    color: var(--texto);
+    border-color: var(--borde);
+}
+
+    .btn-outline-secondary:hover {
+        color: var(--turquesa);
+        border-color: var(--turquesa-medio);
+    }
+
+.btn-outline-success {
+    background: #fff;
+    color: var(--exito);
+    border-color: var(--exito);
+}
+
+    .btn-outline-success:hover {
+        background: var(--exito);
+        color: #fff;
+    }
+
+.btn-outline-danger {
+    background: #fff;
+    color: var(--peligro);
+    border-color: var(--peligro);
+}
+
+    .btn-outline-danger:hover {
+        background: var(--peligro);
+        color: #fff;
+    }
+
+.btn-outline-dark {
+    background: #fff;
+    color: var(--turquesa-oscuro);
+    border-color: var(--turquesa-oscuro);
+}
+
+    .btn-outline-dark:hover {
+        background: var(--turquesa-oscuro);
+        color: var(--lima);
+    }
+
+/* ---------- Tablas ---------- */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+    background: var(--blanco);
+    font-size: .92rem;
+}
+
+    .table th {
+        padding: .65rem .75rem;
+        text-align: left;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: var(--turquesa-oscuro);
+        background: var(--turquesa-suave);
+        border-bottom: 2px solid var(--turquesa-medio);
+    }
+
+    .table td {
+        padding: .65rem .75rem;
+        border-bottom: 1px solid var(--borde-suave);
+        vertical-align: top;
+    }
+
+    .table.align-middle td {
+        vertical-align: middle;
+    }
+
+.table-striped tbody tr:nth-child(even) td {
+    background: #f7fcfd;
+}
+
+@media (max-width: 640.98px) {
+    .table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+/* ---------- Alertas y etiquetas ---------- */
+.alert {
+    margin-bottom: 1rem;
+    padding: .8rem 1rem;
+    border: 1px solid;
+    border-radius: 8px;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+
+.alert-danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.alert-warning {
+    background: #fefce8;
+    border-color: #fde68a;
+    color: #854d0e;
+}
+
+.alert-info {
+    background: var(--turquesa-suave);
+    border-color: #a5f3fc;
+    color: var(--turquesa-oscuro);
+}
+
+.badge {
+    display: inline-block;
+    padding: .25rem .6rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.bg-secondary {
+    background: #6b7280;
+}
+
+.bg-primary {
+    background: var(--turquesa);
+}
+
+.bg-success {
+    background: var(--exito);
+}
+
+.bg-danger {
+    background: var(--peligro);
+}
+
+/* ---------- Errores de Blazor ---------- */
 .blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
-    padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
+    padding: 1rem;
+    color: #fff;
+    background: var(--peligro);
+    border-radius: 8px;
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: "Ocurrió un error.";
     }
-
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
-}
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
-}

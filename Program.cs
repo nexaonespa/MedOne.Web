@@ -3,6 +3,7 @@ using MedOne.Web;
 using MedOne.Web.Components;
 using MedOne.Web.Seguridad;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,10 +31,20 @@ builder.Services.AddScoped<IClaimsTransformation, UsuarioClaimsTransformation>()
 // Sabe a qué clínica pertenece el usuario conectado (usado por el filtro de datos)
 builder.Services.AddScoped<ClinicaActual>();
 
+// En la nube (Railway) la app está detrás de un proxy: respetamos el HTTPS original
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
